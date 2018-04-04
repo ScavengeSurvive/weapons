@@ -1,5 +1,7 @@
 #include "weapons.inc"
 
+#include <test-boilerplate-npcs>
+
 
 new stock
 	ItemType:item_GolfClub,

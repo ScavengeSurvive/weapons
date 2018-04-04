@@ -1,19 +1,20 @@
 {
-  "user": "ScavengeSurvive",
-  "repo": "weapons",
-  "entry": "test.pwn",
-  "output": "test.amx",
-  "dependencies": [
-    "sampctl/samp-stdlib",
-    "Southclaws/samp-logger",
-    "ScavengeSurvive/item",
-    "ScavengeSurvive/health",
-    "ScavengeSurvive/item-array-data",
-    "ScavengeSurvive/action-text",
-    "ScavengeSurvive/language"
-  ],
-  "dev_dependencies": [
-    "ScavengeSurvive/test-boilerplate",
-    "ScavengeSurvive/test-boilerplate-items"
-  ]
+	"user": "ScavengeSurvive",
+	"repo": "weapons",
+	"entry": "test.pwn",
+	"output": "test.amx",
+	"dependencies": [
+		"sampctl/samp-stdlib",
+		"Southclaws/samp-logger",
+		"ScavengeSurvive/item",
+		"ScavengeSurvive/health",
+		"ScavengeSurvive/item-array-data",
+		"ScavengeSurvive/action-text",
+		"ScavengeSurvive/language"
+	],
+	"dev_dependencies": [
+		"ScavengeSurvive/test-boilerplate",
+		"ScavengeSurvive/test-boilerplate-items",
+		"ScavengeSurvive/test-boilerplate-npcs"
+	]
 }
