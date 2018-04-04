@@ -71,18 +71,20 @@ stock Calibre:DefineAmmoCalibre(name[], Float:bleedrate) {
 	return id;
 }
 
-stock AmmoType:DefineItemTypeAmmo(ItemType:itemtype, name[], calibre, Float:bleedratemult, Float:knockoutmult, Float:penetration, size) {
+stock AmmoType:DefineItemTypeAmmo(ItemType:itemtype, name[], Calibre:calibre, Float:bleedratemult, Float:knockoutmult, Float:penetration, size) {
 	SetItemTypeMaxArrayData(itemtype, 1);
 
-	ammo_Data[ammo_Total][ammo_itemType] = itemtype;
-	strcat(ammo_Data[ammo_Total][ammo_name], name, MAX_AMMO_CALIBRE_NAME);
-	ammo_Data[ammo_Total][ammo_calibre] = calibre;
-	ammo_Data[ammo_Total][ammo_bleedrateMult] = bleedratemult;
-	ammo_Data[ammo_Total][ammo_knockoutMult] = knockoutmult;
-	ammo_Data[ammo_Total][ammo_penetration] = penetration;
-	ammo_Data[ammo_Total][ammo_size] = size;
+	new AmmoType:ammoid = AmmoType:ammo_Total++;
 
-	ammo_ItemTypeAmmoType[itemtype] = ammo_Total;
+	ammo_Data[ammoid][ammo_itemType] = itemtype;
+	strcat(ammo_Data[ammoid][ammo_name], name, MAX_AMMO_CALIBRE_NAME);
+	ammo_Data[ammoid][ammo_calibre] = calibre;
+	ammo_Data[ammoid][ammo_bleedrateMult] = bleedratemult;
+	ammo_Data[ammoid][ammo_knockoutMult] = knockoutmult;
+	ammo_Data[ammoid][ammo_penetration] = penetration;
+	ammo_Data[ammoid][ammo_size] = size;
+
+	ammo_ItemTypeAmmoType[itemtype] = ammoid;
 
 	if(itemtype < ammo_ItemTypeLowerBound) {
 		ammo_ItemTypeLowerBound = itemtype;
@@ -90,7 +92,7 @@ stock AmmoType:DefineItemTypeAmmo(ItemType:itemtype, name[], calibre, Float:blee
 		ammo_ItemTypeUpperBound = itemtype;
 	}
 
-	return ammo_Total++;
+	return ammoid;
 }
 
 
