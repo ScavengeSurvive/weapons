@@ -4,27 +4,54 @@
 
 
 new stock
-	ItemType:item_GolfClub,
 	ItemType:item_M9Pistol,
-	ItemType:item_RocketLauncher,
-	ItemType:item_Flamer;
+	ItemType:item_PumpShotgun,
+	ItemType:item_M16Rifle,
+	ItemType:item_Ammo9mm,
+	ItemType:item_AmmoBuck,
+	ItemType:item_Ammo556,
+	Calibre:calibre_9mm,
+	Calibre:calibre_12g,
+	Calibre:calibre_556;
 
 main() {
-	new Calibre:calibre_9mm = DefineAmmoCalibre("9mm", 0.25);
-	new Calibre:calibre_rpg = DefineAmmoCalibre("RPG", 0.0);
+	logger_debug("weapons", true);
 
-	item_GolfClub = DefineItemType("Golf Club", "GolfClub", 333, 3, 90.0, .maxhitpoints = 3);
-	DefineItemTypeWeapon(item_GolfClub, WEAPON_GOLFCLUB, NO_CALIBRE, 0.07, 35, 0);
+	calibre_9mm = DefineAmmoCalibre("9mm", 0.25);
+	calibre_12g = DefineAmmoCalibre("12 Gauge",	0.31);
+	calibre_556 = DefineAmmoCalibre("5.56mm",	0.19);
 
 	item_M9Pistol = DefineItemType("M9", "M9Pistol", 346, 1, 90.0, .maxhitpoints = 1);
+	item_PumpShotgun = DefineItemType("Shotgun", "PumpShotgun", 349, 3, 90.0, .maxhitpoints = 3);
+	item_M16Rifle = DefineItemType("M16", "M16Rifle", 356, 5, 90.0, .maxhitpoints = 5);
+	item_Ammo9mm = DefineItemType("9mm Rounds", "Ammo9mm", 2037, 2, 0.0, 0.0, 0.0, 0.082, 0.221075, 0.067746, 0.037494, 87.375968, 305.182189, 5.691741, .maxhitpoints = 2);
+	item_AmmoBuck = DefineItemType("Shotgun Shells", "AmmoBuck", 2038, 2, 0.0, 0.0, 0.0, 0.082,	0.221075, 0.067746, 0.037494, 87.375968, 305.182189, 5.691741, .maxhitpoints = 2);
+	item_Ammo556 = DefineItemType("5.56 Rounds", "Ammo556", 2040, 3, 0.0, 0.0, 0.0, 0.082, 0.221075, 0.067746, 0.037494, 87.375968, 305.182189, 5.691741, .maxhitpoints = 3);
+
 	DefineItemTypeWeapon(item_M9Pistol, WEAPON_COLT45, calibre_9mm, 330.0, 10, 1);
+	DefineItemTypeWeapon(item_PumpShotgun, WEAPON_SHOTGUN, calibre_12g, 475.0, 6, 1);
+	DefineItemTypeWeapon(item_M16Rifle, WEAPON_M4, calibre_556, 948.0, 30, 1);
 
-	item_RocketLauncher = DefineItemType("RPG", "RocketLauncher", 359, 6, 90.0, .maxhitpoints = 6);
-	DefineItemTypeWeapon(item_RocketLauncher, WEAPON_ROCKETLAUNCHER, calibre_rpg, 0.0, 1, 0, -1, WEAPON_FLAG_ASSISTED_FIRE_ONCE | WEAPON_FLAG_ONLY_FIRE_AIMED);
+	DefineItemTypeAmmo(item_Ammo9mm, "Hollow Point", calibre_9mm, 1.0, 1.0, 0.2, 20);
+	DefineItemTypeAmmo(item_AmmoBuck, "No. 1", calibre_12g, 1.1, 1.8, 0.5, 24);
+	DefineItemTypeAmmo(item_Ammo556, "FMJ", calibre_556, 1.1, 1.2, 0.8, 30);
 
-	// item_Flamer = DefineItemType("Flamer", "Flamer", 361, 7, 90.0, .maxhitpoints = 7);
-	// DefineItemTypeWeapon(item_Flamer, WEAPON_FLAMETHROWER, liquid_Petrol, 0.0, 100, 10, -1, WEAPON_FLAG_ASSISTED_FIRE | WEAPON_FLAG_LIQUID_AMMO);
+	CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
+	CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
+	CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
 
+	SetItemArrayDataAtCell(CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8), 100, 0, true);
+	SetItemArrayDataAtCell(CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8), 100, 0, true);
+	SetItemArrayDataAtCell(CreateItem(item_Ammo556, 305.0, 1802.0, 16.8), 100, 0, true);
+}
+
+public OnPlayerSpawn(playerid) {
+	SetPlayerBlood(playerid, 100.0);
+	return 1;
+}
+
+forward dummy();
+public dummy() {
 	new playerid;
 	new amount;
 	new itemid;
