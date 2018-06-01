@@ -53,10 +53,10 @@ enum E_ITEM_WEAPON_DATA {
 }
 
 // Item array data structure
-enum {
+enum e_WEAPON_ITEM_ARRAY_STRUCT {
 	WEAPON_ITEM_ARRAY_CELL_MAG,
 	WEAPON_ITEM_ARRAY_CELL_RESERVE,
-	WEAPON_ITEM_ARRAY_CELL_AMMOITEM,
+	WEAPON_ITEM_ARRAY_CELL_AMMOTYPE,
 	WEAPON_ITEM_ARRAY_CELL_MODS
 }
 
@@ -78,12 +78,12 @@ static
 // -
 
 
-stock WeaponType:DefineItemTypeWeapon(ItemType:itemtype, baseweapon, Calibre:calibre, Float:muzzvelocity, magsize, maxreservemags, animset = -1, flags = 0) {
-	SetItemTypeMaxArrayData(itemtype, 4);
+stock WeaponType:DefineItemTypeWeapon(ItemType:itemType, baseweapon, Calibre:calibre, Float:muzzvelocity, magsize, maxreservemags, animset = -1, flags = 0) {
+	SetItemTypeMaxArrayData(itemType, e_WEAPON_ITEM_ARRAY_STRUCT);
 
 	new WeaponType:id = WeaponType:itmw_Total++;
 
-	itmw_Data[id][itmw_itemType] = itemtype;
+	itmw_Data[id][itmw_itemType] = itemType;
 	itmw_Data[id][itmw_baseWeapon] = baseweapon;
 	itmw_Data[id][itmw_calibre] = calibre;
 	itmw_Data[id][itmw_muzzVelocity] = muzzvelocity;
@@ -92,45 +92,48 @@ stock WeaponType:DefineItemTypeWeapon(ItemType:itemtype, baseweapon, Calibre:cal
 	itmw_Data[id][itmw_animSet] = animset;
 	itmw_Data[id][itmw_flags] = flags;
 
-	itmw_ItemTypeWeapon[itemtype] = id;
+	itmw_ItemTypeWeapon[itemType] = id;
 
 	return id;
 }
 
-stock bool:IsValidWeaponType(WeaponType:weapontype) {
-	return WeaponType:0 <= weapontype < WeaponType:itmw_Total;
+stock bool:IsValidWeaponType(WeaponType:weaponType) {
+	return WeaponType:0 <= weaponType < WeaponType:itmw_Total;
 }
 
-stock bool:IsItemTypeWeapon(ItemType:itemtype) {
-	if(!IsValidItemType(itemtype)) {
+stock bool:IsItemTypeWeapon(ItemType:itemType) {
+	if(!IsValidItemType(itemType)) {
 		return false;
 	}
-	return itmw_ItemTypeWeapon[itemtype] != INVALID_WEAPON_TYPE;
+	return itmw_ItemTypeWeapon[itemType] != INVALID_WEAPON_TYPE;
 }
 
 stock AddAmmoToWeapon(itemid, amount) {
-	new ItemType:ammoitem;
-	GetItemWeaponItemAmmoItem(itemid, ammoitem);
-
-	if(!IsValidItemType(ammoitem)) {
+	new AmmoType:ammoType;
+	GetWeaponAmmoType(itemid, ammoType);
+	if(!IsValidAmmoType(ammoType)) {
 		return amount;
 	}
 
 	new
-		ItemType:itemtype,
+		ItemType:itemType,
+		WeaponType:weaponType,
 		magsize,
 		reserveammo,
 		maxammo,
 		remainder = amount;
 
-	itemtype = GetItemType(itemid);
-	maxammo = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_maxReserveMags] * magsize;
+	itemType = GetItemType(itemid);
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		return amount;
+	}
+	maxammo = itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_maxReserveMags] * magsize;
 
-	GetItemTypeWeaponMagSize(itemtype, magsize);
-	GetItemWeaponItemReserve(itemid, reserveammo);
+	GetWeaponTypeMagSize(weaponType, magsize);
+	GetWeaponReserve(itemid, reserveammo);
 
 	dbg("weapon", "AddAmmoToWeapon",
-		_i("ammoitem", _:ammoitem),
+		_i("ammoType", _:ammoType),
 		_i("magsize", magsize));
 
 	if(maxammo == 0) {
@@ -138,7 +141,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 		dbg("weapon", "maxammo == 0",
 			_i("amount", amount),
 			_i("itemid", itemid),
-			_i("ammoitem", _:ammoitem),
+			_i("ammoType", _:ammoType),
 			_i("magsize", magsize),
 			_i("reserveammo", reserveammo));
 
@@ -152,7 +155,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 		dbg("weapon", "updating reserve",
 			_i("amount", amount));
 
-		SetItemWeaponItemReserve(itemid, amount);
+		SetWeaponReserve(itemid, amount);
 	} else {
 		// the maximum amount of ammo the weapon can hold is greater than zero
 		if(reserveammo == maxammo) {
@@ -162,7 +165,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 		dbg("weapon", "adding ammo to item",
 			_i("amount", amount),
 			_i("itemid", itemid),
-			_i("ammoitem", _:ammoitem),
+			_i("ammoType", _:ammoType),
 			_i("reserveammo", reserveammo),
 			_i("maxammo", maxammo));
 
@@ -176,7 +179,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 		dbg("weapon", "updating reserve",
 			_i("amount", amount));
 
-		SetItemWeaponItemReserve(itemid, amount + reserveammo);
+		SetWeaponReserve(itemid, amount + reserveammo);
 	}
 
 	dbg("weapon", "finished updating weapon ammo",
@@ -187,196 +190,100 @@ stock AddAmmoToWeapon(itemid, amount) {
 
 
 // itmw_ItemTypeWeapon
-stock GetItemTypeWeapon(ItemType:itemtype, &WeaponType:weapon) {
-	if(!IsValidItemType(itemtype)) {
+stock GetItemTypeWeaponType(ItemType:itemType, &WeaponType:weaponType) {
+	if(!IsValidItemType(itemType)) {
 		return 1;
 	}
 
-	weapon = itmw_ItemTypeWeapon[itemtype];
+	weaponType = itmw_ItemTypeWeapon[itemType];
+	if(weaponType == INVALID_WEAPON_TYPE) {
+		return 2;
+	}
+
 	return 0;
 }
 
 // itmw_itemType
-stock GetItemWeaponItemType(WeaponType:itemweaponid, &ItemType:itemtype) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeItemType(WeaponType:weaponType, &ItemType:itemType) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	itemtype = itmw_Data[itemweaponid][itmw_itemType];
+	itemType = itmw_Data[weaponType][itmw_itemType];
+	if(IsValidItemType(itemType)) {
+		return 2;
+	}
+
 	return 0;
 }
 
 // itmw_baseWeapon
-stock GetItemWeaponBaseWeapon(WeaponType:itemweaponid, &base) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeBaseWeapon(WeaponType:weaponType, &base) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	base = itmw_Data[itemweaponid][itmw_baseWeapon];
+	base = itmw_Data[weaponType][itmw_baseWeapon];
 	return 0;
 }
 
 // itmw_calibre
-stock GetItemWeaponCalibre(WeaponType:itemweaponid, &Calibre:calibre) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeCalibre(WeaponType:weaponType, &Calibre:calibre) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	calibre = itmw_Data[itemweaponid][itmw_calibre];
+	calibre = itmw_Data[weaponType][itmw_calibre];
 	return 0;
 }
 
 // itmw_muzzVelocity
-stock GetItemWeaponMuzzVelocity(WeaponType:itemweaponid, &Float:vel) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeMuzzVelocity(WeaponType:weaponType, &Float:vel) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	vel = itmw_Data[itemweaponid][itmw_muzzVelocity];
+	vel = itmw_Data[weaponType][itmw_muzzVelocity];
 	return 0;
 }
 
 // itmw_magSize
-stock GetItemWeaponMagSize(WeaponType:itemweaponid, &magsize) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeMagSize(WeaponType:weaponType, &magsize) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	magsize = itmw_Data[itemweaponid][itmw_magSize];
+	magsize = itmw_Data[weaponType][itmw_magSize];
 	return 0;
 }
 
 // itmw_maxReserveMags
-stock GetItemWeaponMaxReserveMags(WeaponType:itemweaponid, &reserve) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeMaxReserveMags(WeaponType:weaponType, &reserve) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	reserve = itmw_Data[itemweaponid][itmw_maxReserveMags];
+	reserve = itmw_Data[weaponType][itmw_maxReserveMags];
 	return 0;
 }
 
 // itmw_animSet
-stock GetItemWeaponAnimSet(WeaponType:itemweaponid, &animset) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeAnimSet(WeaponType:weaponType, &animset) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	animset = itmw_Data[itemweaponid][itmw_animSet];
+	animset = itmw_Data[weaponType][itmw_animSet];
 	return 0;
 }
 
 // itmw_flags
-stock GetItemWeaponFlags(WeaponType:itemweaponid, &flags) {
-	if(!(WeaponType:0 <= itemweaponid < WeaponType:itmw_Total)) {
+stock GetWeaponTypeFlags(WeaponType:weaponType, &flags) {
+	if(!(WeaponType:0 <= weaponType < WeaponType:itmw_Total)) {
 		return 1;
 	}
 
-	flags = itmw_Data[itemweaponid][itmw_flags];
-	return 0;
-}
-
-
-// -
-// ItemType interface
-// -
-
-
-// itmw_baseWeapon
-stock GetItemTypeWeaponBaseWeapon(ItemType:itemtype, &base) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	base = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_baseWeapon];
-	return 0;
-}
-
-// itmw_calibre
-stock GetItemTypeWeaponCalibre(ItemType:itemtype, &Calibre:calibre) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	calibre = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_calibre];
-	return 0;
-}
-
-// itmw_muzzVelocity
-stock GetItemTypeWeaponMuzzVelocity(ItemType:itemtype, &Float:vel) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	vel = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_muzzVelocity];
-	return 0;
-}
-
-// itmw_magSize
-stock GetItemTypeWeaponMagSize(ItemType:itemtype, &magsize) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	magsize = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_magSize];
-	return 0;
-}
-
-// itmw_maxReserveMags
-stock GetItemTypeWeaponMaxReserveMags(ItemType:itemtype, &reserve) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	reserve = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_maxReserveMags];
-	return 0;
-}
-
-// itmw_animSet
-stock GetItemTypeWeaponAnimSet(ItemType:itemtype, &animset) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	animset = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_animSet];
-	return 0;
-}
-
-// itmw_flags
-stock GetItemTypeWeaponFlags(ItemType:itemtype, &flags) {
-	if(!IsValidItemType(itemtype)) {
-		return 1;
-	}
-
-	if(!(WeaponType:0 <= itmw_ItemTypeWeapon[itemtype] < WeaponType:itmw_Total)) {
-		return 2;
-	}
-
-	flags = itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_flags];
+	flags = itmw_Data[weaponType][itmw_flags];
 	return 0;
 }
 
@@ -387,47 +294,47 @@ stock GetItemTypeWeaponFlags(ItemType:itemtype, &flags) {
 
 
 // WEAPON_ITEM_ARRAY_CELL_MAG
-stock GetItemWeaponItemMagAmmo(itemid, &ammo) {
+stock GetWeaponMagAmmo(itemid, &ammo) {
 	return GetItemArrayDataAtCell(itemid, WEAPON_ITEM_ARRAY_CELL_MAG, ammo);
 }
 
-stock SetItemWeaponItemMagAmmo(itemid, amount) {
+stock SetWeaponMagAmmo(itemid, amount) {
 	if(amount == 0) {
 		new reserve;
-		GetItemWeaponItemReserve(itemid, reserve);
+		GetWeaponReserve(itemid, reserve);
 		if(reserve == 0) {
-			SetItemWeaponItemAmmoItem(itemid, INVALID_ITEM_TYPE);
+			SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
 		}
 	}
-	SetItemArrayDataSize(itemid, 4);
+	SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
 	return SetItemArrayDataAtCell(itemid, amount, WEAPON_ITEM_ARRAY_CELL_MAG);
 }
 
 // WEAPON_ITEM_ARRAY_CELL_RESERVE
-stock GetItemWeaponItemReserve(itemid, &reserve) {
+stock GetWeaponReserve(itemid, &reserve) {
 	return GetItemArrayDataAtCell(itemid, WEAPON_ITEM_ARRAY_CELL_RESERVE, reserve);
 }
 
-stock SetItemWeaponItemReserve(itemid, amount) {
+stock SetWeaponReserve(itemid, amount) {
 	if(amount == 0) {
 		new mag;
-		GetItemWeaponItemMagAmmo(itemid, mag);
+		GetWeaponMagAmmo(itemid, mag);
 		if(mag == 0) {
-			SetItemWeaponItemAmmoItem(itemid, INVALID_ITEM_TYPE);
+			SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
 		}
 	}
-	SetItemArrayDataSize(itemid, 4);
+	SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
 	return SetItemArrayDataAtCell(itemid, amount, WEAPON_ITEM_ARRAY_CELL_RESERVE);
 }
 
-// WEAPON_ITEM_ARRAY_CELL_AMMOITEM
-stock GetItemWeaponItemAmmoItem(itemid, ItemType:itemtype) {
-	return GetItemArrayDataAtCell(itemid, WEAPON_ITEM_ARRAY_CELL_AMMOITEM, _:itemtype);
+// WEAPON_ITEM_ARRAY_CELL_AMMOTYPE
+stock GetWeaponAmmoType(weaponItemID, AmmoType:ammoType) {
+	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE, _:ammoType);
 }
 
-stock SetItemWeaponItemAmmoItem(itemid, ItemType:itemtype) {
-	SetItemArrayDataSize(itemid, 4);
-	return SetItemArrayDataAtCell(itemid, _:itemtype, WEAPON_ITEM_ARRAY_CELL_AMMOITEM);
+stock SetWeaponAmmoType(weaponItemID, AmmoType:ammoType) {
+	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
+	return SetItemArrayDataAtCell(weaponItemID, _:ammoType, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE);
 }
 
 // From player
@@ -436,14 +343,14 @@ stock GetPlayerMagAmmo(playerid, &mag) {
 	if(!IsPlayerConnected(playerid)) {
 		return 1;
 	}
-	return GetItemWeaponItemMagAmmo(GetPlayerItem(playerid), mag);
+	return GetWeaponMagAmmo(GetPlayerItem(playerid), mag);
 }
 
 stock GetPlayerReserveAmmo(playerid, &reserve) {
 	if(!IsPlayerConnected(playerid)) {
 		return 1;
 	}
-	return GetItemWeaponItemReserve(GetPlayerItem(playerid), reserve);
+	return GetWeaponReserve(GetPlayerItem(playerid), reserve);
 }
 
 stock GetPlayerTotalAmmo(playerid, &ammo) {
@@ -456,8 +363,8 @@ stock GetPlayerTotalAmmo(playerid, &ammo) {
 		mag,
 		reserve;
 
-	GetItemWeaponItemMagAmmo(itemid, mag);
-	GetItemWeaponItemReserve(itemid, reserve);
+	GetWeaponMagAmmo(itemid, mag);
+	GetWeaponReserve(itemid, reserve);
 
 	ammo = mag + reserve;
 	return 0;
@@ -518,10 +425,10 @@ hook OnPlayerConnect(playerid) {
 
 hook OnItemCreate(itemid) {
 	if(IsItemTypeWeapon(GetItemType(itemid))) {
-		SetItemArrayDataSize(itemid, 4);
+		SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
 		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_MAG);
 		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_RESERVE);
-		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_AMMOITEM);
+		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE);
 		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_MODS);
 	}
 	return Y_HOOKS_CONTINUE_RETURN_0;
@@ -539,7 +446,7 @@ hook OnPlayerGetItem(playerid, itemid) {
 
 hook OnPlayerGivenItem(playerid, targetid, itemid) {
 	new WeaponType:weapontype;
-	GetItemTypeWeapon(GetItemType(itemid), weapontype);
+	GetItemTypeWeaponType(GetItemType(itemid), weapontype);
 	if(weapontype != INVALID_WEAPON_TYPE) {
 		dbg("weapon", "player given weapon",
 			_i("playerid", playerid),
@@ -556,7 +463,7 @@ hook OnPlayerGivenItem(playerid, targetid, itemid) {
 
 hook OnPlayerDroppedItem(playerid, itemid) {
 	new WeaponType:weapontype;
-	GetItemTypeWeapon(GetItemType(itemid), weapontype);
+	GetItemTypeWeaponType(GetItemType(itemid), weapontype);
 	if(weapontype != INVALID_WEAPON_TYPE) {
 		dbg("weapon", "player dropped weapon",
 			_i("playerid", playerid),
@@ -576,60 +483,59 @@ _weapons_update(playerid) {
 
 	new
 		itemid,
-		ItemType:itemtype;
+		ItemType:itemType;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
 
+	itemType = GetItemType(itemid);
 	if(!IsValidItem(itemid)) {
 		return 2;
 	}
 
-	new WeaponType:weapontype;
-	GetItemTypeWeapon(itemtype, weapontype);
-	if(!IsValidWeaponType(weapontype)) {
+	new WeaponType:weaponType;
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
 		return 3;
 	}
 
 	new todo;
-	// if(itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_calibre] == NO_CALIBRE) {
-	// 	GivePlayerWeapon(playerid, itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_baseWeapon], 99999);
+	// if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
+	// 	GivePlayerWeapon(playerid, itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon], 99999);
 	// 	return 4;
 	// }
 
 	// Get the item type used as ammo for this weapon item
-	new ItemType:ammoitem;
-	GetItemWeaponItemAmmoItem(itemid, ammoitem);
+	new AmmoType:ammoType;
+	GetWeaponAmmoType(itemid, ammoType);
 
 	// If it's not a valid ammo type, the gun has no ammo loaded.
-	// if(GetItemTypeAmmoType(ammoitem) == -1) {
-	// 	ResetPlayerWeapons(playerid);
-	// 	_weapons_updateUI(playerid);
-	// 	ShowActionText(playerid, @L(playerid, "WEAPNOAMMOL", true), 3000);
-	// 	return 5;
-	// }
+	if(ammoType == INVALID_AMMUNITION_TYPE) {
+		ResetPlayerWeapons(playerid);
+		_weapons_updateUI(playerid);
+		ShowActionText(playerid, @L(playerid, "WEAPNOAMMOL", true), 3000);
+		return 5;
+	}
 
 	new magsize;
-	GetItemTypeWeaponMagSize(itemtype, magsize);
+	GetWeaponTypeMagSize(weaponType, magsize);
 	if(magsize > 0) {
 		new mag;
-		GetItemWeaponItemMagAmmo(itemid, mag);
+		GetWeaponMagAmmo(itemid, mag);
 		if(mag > magsize) {
-			SetItemWeaponItemMagAmmo(itemid, magsize);
+			SetWeaponMagAmmo(itemid, magsize);
 			new reserve;
-			GetItemWeaponItemReserve(itemid, reserve);
-			SetItemWeaponItemReserve(itemid, reserve + (mag - magsize));
+			GetWeaponReserve(itemid, reserve);
+			SetWeaponReserve(itemid, reserve + (mag - magsize));
 		}
 	} else {
-		// dbg("weapon", "ERROR: Item weapon %d uses ammo item %d which has a max ammo of %d.", _:itemtype, _:ammoitem, magsize);
+		// dbg("weapon", "ERROR: Item weapon %d uses ammo item %d which has a max ammo of %d.", _:itemType, _:ammoitem, magsize);
 	}
 
 	new
 		magammo,
 		reserveammo;
 	
-	GetItemWeaponItemMagAmmo(itemid, magammo);
-	GetItemWeaponItemReserve(itemid, reserveammo);
+	GetWeaponMagAmmo(itemid, magammo);
+	GetWeaponReserve(itemid, reserveammo);
 
 	ResetPlayerWeapons(playerid);
 
@@ -639,7 +545,7 @@ _weapons_update(playerid) {
 		}
 	} else if(magammo > 0) {
 		new base;
-		GetItemTypeWeaponBaseWeapon(itemtype, base);
+		GetWeaponTypeBaseWeapon(weaponType, base);
 		GivePlayerWeapon(playerid, base, 99999);
 	}
 
@@ -658,12 +564,12 @@ hook OnPlayerUpdate(playerid) {
 _weapons_updateFast(playerid) {
 	new
 		itemid,
-		ItemType:itemtype;
+		ItemType:itemType;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
+	itemType = GetItemType(itemid);
 
-	if(!IsValidItemType(itemtype)) {
+	if(!IsValidItemType(itemType)) {
 		if(GetPlayerWeapon(playerid) > 0) {
 			RemovePlayerWeapon(playerid);
 		}
@@ -671,13 +577,13 @@ _weapons_updateFast(playerid) {
 		return;
 	}
 
-	if(!IsItemTypeWeapon(itemtype)) {
+	if(!IsItemTypeWeapon(itemType)) {
 		return;
 	}
 
 	new todo;
-	// if(itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_calibre] == NO_CALIBRE) {
-	// 	if(IsBaseWeaponThrowable(itmw_Data[itmw_ItemTypeWeapon[itemtype]][itmw_baseWeapon])) {
+	// if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
+	// 	if(IsBaseWeaponThrowable(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon])) {
 	// 		if(GetPlayerWeapon(playerid) == 0) {
 	// 			if(GetTickCountDifference(GetTickCount(), tick_GetWeaponTick[playerid]) > 1000)
 	// 				DestroyItem(itemid);
@@ -687,20 +593,19 @@ _weapons_updateFast(playerid) {
 	// 	return;
 	// }
 
-	if(GetPlayerState(playerid) == PLAYER_STATE_DRIVER)
-	{
+	if(GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
 		SetPlayerArmedWeapon(playerid, 0);
 		return;
 	}
 
 	new mag;
-	GetItemWeaponItemMagAmmo(itemid, mag);
+	GetWeaponMagAmmo(itemid, mag);
 	if(mag <= 0) {
 		return;
 	}
 
 	new base;
-	GetItemTypeWeaponBaseWeapon(itemtype, base);
+	GetWeaponTypeBaseWeapon(itmw_ItemTypeWeapon[itemType], base);
 	SetPlayerArmedWeapon(playerid, base);
 
 	return;
@@ -710,19 +615,14 @@ timer _RepeatingFire[1000](playerid)
 {
 	new
 		itemid,
-		ItemType:itemtype,
+		ItemType:itemType,
 		magammo;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
-	GetItemWeaponItemMagAmmo(itemid, magammo);
+	itemType = GetItemType(itemid);
+	GetWeaponMagAmmo(itemid, magammo);
 
-	if(!IsValidItemType(itemtype)) {
-		stop itmw_RepeatingFireTimer[playerid];
-		return;
-	}
-
-	if(!IsItemTypeWeapon(itemtype)) {
+	if(!IsValidItemType(itemType)) {
 		stop itmw_RepeatingFireTimer[playerid];
 		return;
 	}
@@ -732,8 +632,14 @@ timer _RepeatingFire[1000](playerid)
 		return;
 	}
 
+	new WeaponType:weaponType;
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		stop itmw_RepeatingFireTimer[playerid];
+		return;
+	}
+
 	new flags;
-	GetItemTypeWeaponFlags(itemtype, flags);
+	GetWeaponTypeFlags(weaponType, flags);
 	if(!(flags & WEAPON_FLAG_ASSISTED_FIRE)) {
 		stop itmw_RepeatingFireTimer[playerid];
 		return;
@@ -749,12 +655,13 @@ timer _RepeatingFire[1000](playerid)
 
 	if(k & KEY_FIRE) {
 		new reserveMags;
-		GetItemTypeWeaponMaxReserveMags(itemtype, reserveMags);
+		GetWeaponTypeMaxReserveMags(weaponType, reserveMags);
 		magammo -= reserveMags;
-		SetItemWeaponItemMagAmmo(itemid, magammo);
+		SetWeaponMagAmmo(itemid, magammo);
 
-		if(magammo <= 0)
+		if(magammo <= 0) {
 			_weapons_reload(playerid);
+		}
 
 		_weapons_updateUI(playerid);
 	} else {
@@ -782,14 +689,14 @@ _weapons_doShot(playerid, weaponid, hittype = -1, hitid = -1, Float:fX = 0.0, Fl
 
 	new
 		itemid,
-		ItemType:itemtype,
+		ItemType:itemType,
 		magammo;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
-	GetItemWeaponItemMagAmmo(itemid, magammo);
+	itemType = GetItemType(itemid);
+	GetWeaponMagAmmo(itemid, magammo);
 
-	if(!IsValidItemType(itemtype)) {
+	if(!IsValidItemType(itemType)) {
 		new todo;
 		// CallLocalFunction() anticheat
 		// ChatMsgAdmins(1, YELLOW, "[TEST] Player %p fired weapon type %d without having any item equipped.", playerid, weaponid);
@@ -797,19 +704,20 @@ _weapons_doShot(playerid, weaponid, hittype = -1, hitid = -1, Float:fX = 0.0, Fl
 		return 0;
 	}
 
-	if(!IsItemTypeWeapon(itemtype)) {
+	new WeaponType:weaponType;
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
 		new todo;
-		// ChatMsgAdmins(1, YELLOW, "[TEST] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemtype);
-		// dbg("weapon", "[TMPREPORT] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemtype);
+		// ChatMsgAdmins(1, YELLOW, "[TEST] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemType);
+		// dbg("weapon", "[TMPREPORT] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemType);
 		return 0;
 	}
 
 	magammo -= 1;
 
-	SetItemWeaponItemMagAmmo(itemid, magammo);
+	SetWeaponMagAmmo(itemid, magammo);
 
 	new flags;
-	GetItemTypeWeaponFlags(itemtype, flags);
+	GetWeaponTypeFlags(weaponType, flags);
 	if(magammo == 0 && !(flags & WEAPON_FLAG_ASSISTED_FIRE_ONCE)) {
 		_weapons_reload(playerid);
 	}
@@ -827,13 +735,17 @@ _weapons_reload(playerid) {
 
 	new
 		itemid,
-		ItemType:itemtype,
+		ItemType:itemType,
+		WeaponType:weaponType,
 		Calibre:calibre;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
-	GetItemTypeWeaponCalibre(itemtype, calibre);
+	itemType = GetItemType(itemid);
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		return 2;
+	}
 
+	GetWeaponTypeCalibre(weaponType, calibre);
 	if(calibre == NO_CALIBRE) {
 		dbg("weapon", "Weapon has no calibre, cancelling reload");
 		return 2;
@@ -844,15 +756,15 @@ _weapons_reload(playerid) {
 		reserveammo,
 		magsize;
 
-	GetItemWeaponItemMagAmmo(itemid, magammo);
-	GetItemWeaponItemReserve(itemid, reserveammo);
-	GetItemTypeWeaponMagSize(itemtype, magsize);
+	GetWeaponMagAmmo(itemid, magammo);
+	GetWeaponReserve(itemid, reserveammo);
+	GetWeaponTypeMagSize(weaponType, magsize);
 
 	if(reserveammo == 0) {
 		dbg("weapon", "no reserve ammo left to reload with");
 
 		if(magammo == 0) {
-			SetItemWeaponItemAmmoItem(itemid, INVALID_ITEM_TYPE);
+			SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
 			ResetPlayerWeapons(playerid);
 		}
 
@@ -869,17 +781,16 @@ _weapons_reload(playerid) {
 	}
 
 	new base;
-	GetItemTypeWeaponBaseWeapon(itemtype, base);
+	GetWeaponTypeBaseWeapon(weaponType, base);
 
 	ResetPlayerWeapons(playerid);
 
-	if(reserveammo + magammo > magsize)
-	{
-		SetItemWeaponItemMagAmmo(itemid, magsize);
-		SetItemWeaponItemReserve(itemid, reserveammo - (magsize - magammo));
+	if(reserveammo + magammo > magsize) {
+		SetWeaponMagAmmo(itemid, magsize);
+		SetWeaponReserve(itemid, reserveammo - (magsize - magammo));
 	} else {
-		SetItemWeaponItemMagAmmo(itemid, reserveammo + magammo);
-		SetItemWeaponItemReserve(itemid, 0);
+		SetWeaponMagAmmo(itemid, reserveammo + magammo);
+		SetWeaponReserve(itemid, 0);
 	}
 
 	switch(base) {
@@ -899,12 +810,17 @@ _weapons_reload(playerid) {
 _weapons_updateUI(playerid) {
 	new
 		itemid,
-		ItemType:itemtype,
+		ItemType:itemType,
+		WeaponType:weaponType,
 		Calibre:calibre;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
-	GetItemTypeWeaponCalibre(itemtype, calibre);
+	itemType = GetItemType(itemid);
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		return;
+	}
+
+	GetWeaponTypeCalibre(weaponType, calibre);
 
 	if(calibre == NO_CALIBRE) {
 		dbg("weapon", "weapon is not clip based");
@@ -918,9 +834,9 @@ _weapons_updateUI(playerid) {
 		reserve,
 		str[8];
 	
-	GetItemTypeWeaponMaxReserveMags(itemtype, reserveMags);
-	GetItemWeaponItemMagAmmo(itemid, mag);
-	GetItemWeaponItemReserve(itemid, reserve);
+	GetWeaponTypeMaxReserveMags(weaponType, reserveMags);
+	GetWeaponMagAmmo(itemid, mag);
+	GetWeaponReserve(itemid, reserve);
 
 	if(reserveMags > 0) {
 		format(str, 8, "%d/%d", mag, reserve);
@@ -940,19 +856,25 @@ hook OnPlayerHolsteredItem(playerid, itemid) {
 	}
 
 	new
-		helditemid = GetPlayerItem(playerid),
+		heldItemID,
+		ItemType:itemType,
+		WeaponType:weaponType,
 		base;
 	
-	GetItemTypeWeaponBaseWeapon(GetItemType(helditemid), base);
+	heldItemID = GetPlayerItem(playerid);
+	itemType = GetItemType(heldItemID);
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		RemovePlayerWeapon(playerid);
+		return Y_HOOKS_CONTINUE_RETURN_0;
+	}
 
+	GetWeaponTypeBaseWeapon(weaponType, base);
 	if(base > 0) {
 		new mag;
-		GetItemWeaponItemMagAmmo(helditemid, mag);
+		GetWeaponMagAmmo(heldItemID, mag);
 		if(mag == 0) {
 			RemovePlayerWeapon(playerid);
 		}
-	} else {
-		RemovePlayerWeapon(playerid);
 	}
 
 	return Y_HOOKS_CONTINUE_RETURN_0;
@@ -977,7 +899,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 		}
 
 		new WeaponType:weapontype;
-		GetItemTypeWeapon(GetItemType(GetPlayerItem(playerid)), weapontype);
+		GetItemTypeWeaponType(GetItemType(GetPlayerItem(playerid)), weapontype);
 		if(weapontype != INVALID_WEAPON_TYPE) {
 			_weapons_reload(playerid);
 		}
@@ -986,31 +908,29 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	if(newkeys & KEY_FIRE) {
 		new
 			itemid,
-			ItemType:itemtype;
+			ItemType:itemType;
 
 		itemid = GetPlayerItem(playerid);
-		itemtype = GetItemType(itemid);
 
-		if(!IsValidItemType(itemtype)) {
+		itemType = GetItemType(itemid);
+		if(!IsValidItemType(itemType)) {
 			return Y_HOOKS_CONTINUE_RETURN_1;
 		}
 
 		new WeaponType:weapontype;
-		GetItemTypeWeapon(itemtype, weapontype);
-		if(weapontype == INVALID_WEAPON_TYPE) {
+		if(GetItemTypeWeaponType(itemType, weapontype)) {
 			return Y_HOOKS_CONTINUE_RETURN_1;
 		}
 
 		new base;
-		GetItemTypeWeaponBaseWeapon(itemtype, base);
+		GetWeaponTypeBaseWeapon(weapontype, base);
 		if(IsBaseWeaponThrowable(base)) {
 			defer _weapons_destroyThrowable(playerid, itemid);
 			return Y_HOOKS_CONTINUE_RETURN_1;
 		}
 
 		new flags;
-		GetItemTypeWeaponFlags(itemtype, flags);
-
+		GetWeaponTypeFlags(weapontype, flags);
 		if(flags & WEAPON_FLAG_ONLY_FIRE_AIMED) {
 			if(!(newkeys & KEY_HANDBRAKE)) {
 				return Y_HOOKS_CONTINUE_RETURN_1;
@@ -1025,8 +945,24 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	}
 
 	if(oldkeys & KEY_FIRE) {
+		new
+			itemid,
+			ItemType:itemType;
+
+		itemid = GetPlayerItem(playerid);
+
+		itemType = GetItemType(itemid);
+		if(!IsValidItemType(itemType)) {
+			return Y_HOOKS_CONTINUE_RETURN_1;
+		}
+
+		new WeaponType:weapontype;
+		if(GetItemTypeWeaponType(itemType, weapontype)) {
+			return Y_HOOKS_CONTINUE_RETURN_1;
+		}
+
 		new base;
-		GetItemTypeWeaponBaseWeapon(GetItemType(GetPlayerItem(playerid)), base);
+		GetWeaponTypeBaseWeapon(weapontype, base);
 		if(base == WEAPON_FLAMETHROWER) {
 			stop itmw_RepeatingFireTimer[playerid];
 		}
@@ -1035,8 +971,8 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	if(oldkeys & KEY_NO) {
 		if(IsValidItem(itmw_DropItemID[playerid])) {
 			new mag, reserve;
-			GetItemWeaponItemMagAmmo(itmw_DropItemID[playerid], mag);
-			GetItemWeaponItemReserve(itmw_DropItemID[playerid], reserve);
+			GetWeaponMagAmmo(itmw_DropItemID[playerid], mag);
+			GetWeaponReserve(itmw_DropItemID[playerid], reserve);
 
 			dbg("weapon", "dropping weapon item",
 				_i("itemid", itmw_DropItemID[playerid]),
@@ -1067,18 +1003,16 @@ hook OnPlayerDropItem(playerid, itemid) {
 
 _weapons_handleDrop(playerid, itemid) {
 	new
-		ItemType:itemtype,
-		WeaponType:weapontype;
+		ItemType:itemType,
+		WeaponType:weaponType;
 
-	itemtype = GetItemType(itemid);
-	GetItemTypeWeapon(itemtype, weapontype);
-
-	if(weapontype == INVALID_WEAPON_TYPE) {
+	itemType = GetItemType(itemid);
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
 		return 0;
 	}
 
 	new maxMags;
-	GetItemTypeWeaponMaxReserveMags(itemtype, maxMags);
+	GetWeaponTypeMaxReserveMags(weaponType, maxMags);
 	if(maxMags == 0) {
 		return 0;
 	}
@@ -1088,7 +1022,7 @@ _weapons_handleDrop(playerid, itemid) {
 	}
 
 	new flags;
-	GetItemTypeWeaponFlags(itemtype, flags);
+	GetWeaponTypeFlags(weaponType, flags);
 	if(flags & WEAPON_FLAG_LIQUID_AMMO) {
 		return 0;
 	}
@@ -1111,26 +1045,28 @@ timer _weapons_doUnload[300](playerid, itemid) {
 	}
 
 	new
-		ItemType:ammoitemtype,
+		AmmoType:ammoType,
+		ItemType:ammoTypeItemType,
 		Float:x,
 		Float:y,
 		Float:z,
 		Float:r,
 		ammoitemid;
 
-	GetItemWeaponItemAmmoItem(itemid, ammoitemtype);
+	GetWeaponAmmoType(itemid, ammoType);
+	GetAmmoTypeItemType(ammoType, ammoTypeItemType);
 	GetPlayerPos(playerid, x, y, z);
 	GetPlayerFacingAngle(playerid, r);
 
 	new mag, reserve;
-	GetItemWeaponItemMagAmmo(itemid, mag);
-	GetItemWeaponItemReserve(itemid, reserve);
+	GetWeaponMagAmmo(itemid, mag);
+	GetWeaponReserve(itemid, reserve);
 
 	dbg("weapon", "unloading weapon ammo",
 		_i("mag", mag),
 		_i("reserve", reserve));
 
-	ammoitemid = CreateItem(ammoitemtype,
+	ammoitemid = CreateItem(ammoTypeItemType,
 		x + (0.5 * floatsin(-r, degrees)),
 		y + (0.5 * floatcos(-r, degrees)),
 		z - ITEM_FLOOR_OFFSET,
@@ -1139,9 +1075,9 @@ timer _weapons_doUnload[300](playerid, itemid) {
 
 	SetItemExtraData(ammoitemid, mag + reserve);
 
-	SetItemWeaponItemMagAmmo(itemid, 0);
-	SetItemWeaponItemReserve(itemid, 0);
-	SetItemWeaponItemAmmoItem(itemid, INVALID_ITEM_TYPE);
+	SetWeaponMagAmmo(itemid, 0);
+	SetWeaponReserve(itemid, 0);
+	SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
 	_weapons_update(playerid);
 	itmw_DropItemID[playerid] = INVALID_ITEM_ID;
 
@@ -1151,64 +1087,67 @@ timer _weapons_doUnload[300](playerid, itemid) {
 	return;
 }
 
-hook OnItemNameRender(itemid, ItemType:itemtype) {
+hook OnItemNameRender(itemid, ItemType:itemType) {
 	new WeaponType:weapontype;
-	GetItemTypeWeapon(itemtype, weapontype);
+	GetItemTypeWeaponType(itemType, weapontype);
 
 	if(weapontype == INVALID_WEAPON_TYPE) {
 		return Y_HOOKS_CONTINUE_RETURN_0;
 	}
 
-	new Calibre:calibre;
-	GetItemTypeWeaponCalibre(itemtype, calibre);
-	if(calibre == NO_CALIBRE) {
-		return Y_HOOKS_CONTINUE_RETURN_0;
+	new exname[MAX_ITEM_TEXT];
+	_weapons_generateItemName(itemid, exname);
+	SetItemNameExtra(itemid, exname);
+
+	return Y_HOOKS_CONTINUE_RETURN_0;
+}
+
+_weapons_generateItemName(itemid, output[], len = sizeof output) {
+	new ItemType:itemType = GetItemType(itemid);
+
+	new WeaponType:weaponType;
+	if(GetItemTypeWeaponType(itemType, weaponType)) {
+		return 1;
 	}
 
-	dbg("weapon", "rendering name for weapon item",
-		_i("itemid", itemid),
-		_i("itemtype", _:itemtype),
-		_i("weapontype", _:weapontype));
+	new Calibre:calibre;
+	GetWeaponTypeCalibre(weaponType, calibre);
+	if(calibre == NO_CALIBRE) {
+		return 1;
+	}
 
 	new
-		ItemType:ammoitem,
-		AmmoType:ammotype,
 		flags,
 		calibrename[MAX_AMMO_CALIBRE_NAME],
-		ammoname[MAX_AMMO_CALIBRE_NAME],
-		exname[MAX_ITEM_TEXT];
+		ammoname[MAX_AMMO_CALIBRE_NAME];
 	
-	GetItemWeaponItemAmmoItem(itemid, ammoitem);
-	GetItemTypeAmmoType(ammoitem, ammotype);
-	GetItemTypeWeaponFlags(itemtype, flags);
-
+	GetWeaponTypeFlags(weaponType, flags);
 	if(flags & WEAPON_FLAG_LIQUID_AMMO) {
 		calibrename = "Liquid";
 	} else {
 		GetCalibreName(calibre, calibrename);
 	}
 
-	if(ammotype == INVALID_AMMUNITION_TYPE) {
+	new AmmoType:ammoType;
+	GetWeaponAmmoType(itemid, ammoType);
+	if(ammoType == INVALID_AMMUNITION_TYPE) {
 		ammoname = "Unloaded";
 	} else {
-		GetAmmoTypeName(ammotype, ammoname);
+		GetAmmoTypeName(ammoType, ammoname);
 	}
 
 	new
-		name[MAX_ITEM_NAME],
 		mag,
 		reserve;
 
-	GetItemTypeName(itemtype, name);
-	GetItemWeaponItemMagAmmo(itemid, mag);
-	GetItemWeaponItemReserve(itemid, reserve);
+	GetWeaponMagAmmo(itemid, mag);
+	GetWeaponReserve(itemid, reserve);
 
-	format(exname, sizeof(exname), "%d/%d, %s, %s",
+	format(output, len, "%d/%d, %s, %s",
 		mag,
 		reserve,
 		calibrename,
 		ammoname);
-	SetItemNameExtra(itemid, exname);
 
-	return Y_HOOKS_CONTINUE_RETURN_0;
+	return 0;
 }

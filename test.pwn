@@ -52,6 +52,68 @@ main() {
 	SetItemArrayDataAtCell(M9Pistol, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
 	SetItemArrayDataAtCell(PumpShotgun, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
 	SetItemArrayDataAtCell(M16Rifle, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
+
+	new itemName[MAX_ITEM_TEXT];
+	for(new ItemType:weaponItemType; IsValidItemType(weaponItemType); weaponItemType++) {
+		new WeaponType:weaponType;
+		if(GetItemTypeWeaponType(weaponItemType, weaponType)) {
+			continue;
+		}
+
+		new Calibre:weaponTypeCalibre;
+		GetWeaponTypeCalibre(weaponType, weaponTypeCalibre);
+		if(weaponTypeCalibre == NO_CALIBRE) {
+			continue;
+		}
+
+		new weaponItemName[MAX_ITEM_NAME];
+		GetItemTypeName(weaponItemType, weaponItemName);
+
+		new weaponItem = CreateItem(weaponItemType);
+
+		for(new ItemType:ammoItemType; IsValidItemType(ammoItemType); ammoItemType++) {
+			new AmmoType:ammoType;
+			if(GetItemTypeAmmoType(ammoItemType, ammoType)) {
+				continue;
+			}
+
+			new Calibre:ammoTypeCalibre;
+			if(GetAmmoTypeCalibre(ammoType, ammoTypeCalibre)) {
+				continue;
+			}
+
+			if(ammoTypeCalibre != weaponTypeCalibre) {
+				continue;
+			}
+
+			new mags;
+			new magSize;
+			GetWeaponTypeMaxReserveMags(weaponType, mags);
+			GetWeaponTypeMagSize(weaponType, magSize);
+
+			for(new round; round < magSize; round++) {
+				for(new mag; mag < mags * magSize; mag++) {
+					SetWeaponAmmoType(weaponItem, ammoType);
+					SetWeaponMagAmmo(weaponItem, round);
+					SetWeaponReserve(weaponItem, mag);
+					_weapons_generateItemName(weaponItem, itemName);
+					log("rendered",
+						_s("name", weaponItemName),
+						_s("text", itemName));
+				}
+			}
+		}
+
+		DestroyItem(weaponItem);
+	}
+}
+
+hook OnItemArrayDataChanged(itemid) {
+	// useful for debugging
+	// log("item array data changed",
+	// 	_i("ammoitem", _:a),
+	// 	_i("itemid", itemid),
+	// 	_i("length", GetItemArrayDataSize(itemid)));
 }
 
 public OnPlayerSpawn(playerid) {
@@ -69,54 +131,41 @@ public dummy() {
 
 	new WeaponType:weapontype;
 	new ItemType:itemtype;
-	GetItemTypeWeapon(ItemType:itemtype, weapontype);
+	GetItemTypeWeaponType(ItemType:itemtype, weapontype);
 
-	GetItemWeaponItemType(weapontype, ItemType:itemtype);
+	GetWeaponTypeItemType(weapontype, ItemType:itemtype);
 
 	new base;
-	GetItemWeaponBaseWeapon(weapontype, base);
+	GetWeaponTypeBaseWeapon(weapontype, base);
 
 	new Calibre:calibre;
-	GetItemWeaponCalibre(weapontype, calibre);
+	GetWeaponTypeCalibre(weapontype, calibre);
 
 	new Float:vel;
-	GetItemWeaponMuzzVelocity(weapontype, Float:vel);
+	GetWeaponTypeMuzzVelocity(weapontype, Float:vel);
 
 	new magsize;
-	GetItemWeaponMagSize(weapontype, magsize);
+	GetWeaponTypeMagSize(weapontype, magsize);
 
 	new reserve;
-	GetItemWeaponMaxReserveMags(weapontype, reserve);
+	GetWeaponTypeMaxReserveMags(weapontype, reserve);
 
 	new animset;
-	GetItemWeaponAnimSet(weapontype, animset);
+	GetWeaponTypeAnimSet(weapontype, animset);
 
 	new flags;
-	GetItemWeaponFlags(weapontype, flags);
-
-	GetItemTypeWeaponBaseWeapon(itemtype, base);
-
-	GetItemTypeWeaponCalibre(itemtype, calibre);
-
-	GetItemTypeWeaponMuzzVelocity(ItemType:itemtype, Float:vel);
-
-	GetItemTypeWeaponMagSize(ItemType:itemtype, magsize);
-
-	GetItemTypeWeaponMaxReserveMags(ItemType:itemtype, reserve);
-
-	GetItemTypeWeaponAnimSet(ItemType:itemtype, animset);
-
-	GetItemTypeWeaponFlags(ItemType:itemtype, flags);
+	GetWeaponTypeFlags(weapontype, flags);
 
 	new ammo;
-	GetItemWeaponItemMagAmmo(itemid, ammo);
+	GetWeaponMagAmmo(itemid, ammo);
 
-	SetItemWeaponItemMagAmmo(itemid, amount);
-	GetItemWeaponItemReserve(itemid, reserve);
+	SetWeaponMagAmmo(itemid, amount);
+	GetWeaponReserve(itemid, reserve);
 
-	SetItemWeaponItemReserve(itemid, amount);
-	GetItemWeaponItemAmmoItem(itemid, ItemType:itemtype);
-	SetItemWeaponItemAmmoItem(itemid, ItemType:itemtype);
+	SetWeaponReserve(itemid, amount);
+	new AmmoType:ammoType;
+	GetWeaponAmmoType(itemid, ammoType);
+	SetWeaponAmmoType(itemid, ammoType);
 	new mag;
 	GetPlayerMagAmmo(playerid, mag);
 

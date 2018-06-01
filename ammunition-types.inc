@@ -95,6 +95,9 @@ stock AmmoType:DefineItemTypeAmmo(ItemType:itemtype, name[], Calibre:calibre, Fl
 	return ammoid;
 }
 
+stock bool:IsValidAmmoType(AmmoType:ammoType) {
+	return (AmmoType:0 <= ammoType < AmmoType:ammo_Total);
+}
 
 // clbr_name
 stock GetCalibreName(Calibre:calibre, name[MAX_AMMO_CALIBRE_NAME]) {
