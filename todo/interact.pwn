@@ -22,40 +22,6 @@
 ==============================================================================*/
 
 
-hook OnPlayerGetItem(playerid, itemid)
-{
-	dbg("global", CORE, "[OnPlayerGetItem] in /gamemodes/sss/core/weapon/interact.pwn");
-
-	UpdatePlayerWeaponItem(playerid);
-
-	return Y_HOOKS_CONTINUE_RETURN_0;
-}
-
-hook OnPlayerGivenItem(playerid, targetid, itemid)
-{
-	dbg("global", CORE, "[OnPlayerGivenItem] in /gamemodes/sss/core/weapon/interact.pwn");
-
-	if(GetItemTypeWeapon(GetItemType(itemid)) != -1)
-	{
-		RemovePlayerWeapon(playerid);
-		UpdatePlayerWeaponItem(targetid);
-	}
-
-	return Y_HOOKS_CONTINUE_RETURN_0;
-}
-
-hook OnPlayerDroppedItem(playerid, itemid)
-{
-	dbg("global", CORE, "[OnPlayerDroppedItem] in /gamemodes/sss/core/weapon/interact.pwn");
-
-	if(GetItemTypeWeapon(GetItemType(itemid)) != -1)
-	{
-		RemovePlayerWeapon(playerid);
-	}
-
-	return Y_HOOKS_CONTINUE_RETURN_0;
-}
-
 hook OnPlayerUseItemWithItem(playerid, itemid, withitemid)
 {
 	dbg("global", CORE, "[OnPlayerUseItemWithItem] in /gamemodes/sss/core/weapon/interact.pwn");

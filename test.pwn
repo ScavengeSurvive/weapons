@@ -15,7 +15,8 @@ new stock
 	Calibre:calibre_556;
 
 main() {
-	logger_debug("weapons", true);
+	logger_debug("weapon", true);
+	logger_debug("item", true);
 
 	calibre_9mm = DefineAmmoCalibre("9mm", 0.25);
 	calibre_12g = DefineAmmoCalibre("12 Gauge",	0.31);
@@ -36,13 +37,21 @@ main() {
 	DefineItemTypeAmmo(item_AmmoBuck, "No. 1", calibre_12g, 1.1, 1.8, 0.5, 24);
 	DefineItemTypeAmmo(item_Ammo556, "FMJ", calibre_556, 1.1, 1.2, 0.8, 30);
 
-	CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
-	CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
-	CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
+	new M9Pistol = CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
+	new PumpShotgun = CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
+	new M16Rifle = CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
 
-	SetItemArrayDataAtCell(CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8), 100, 0, true);
-	SetItemArrayDataAtCell(CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8), 100, 0, true);
-	SetItemArrayDataAtCell(CreateItem(item_Ammo556, 305.0, 1802.0, 16.8), 100, 0, true);
+	new Ammo9mm = CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8);
+	new AmmoBuck = CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8);
+	new Ammo556 = CreateItem(item_Ammo556, 305.0, 1802.0, 16.8);
+
+	SetItemArrayDataAtCell(Ammo9mm, 100, 0, true);
+	SetItemArrayDataAtCell(AmmoBuck, 100, 0, true);
+	SetItemArrayDataAtCell(Ammo556, 100, 0, true);
+
+	SetItemArrayDataAtCell(M9Pistol, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
+	SetItemArrayDataAtCell(PumpShotgun, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
+	SetItemArrayDataAtCell(M16Rifle, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
 }
 
 public OnPlayerSpawn(playerid) {
