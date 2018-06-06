@@ -497,11 +497,10 @@ _weapons_update(playerid) {
 		return 3;
 	}
 
-	new todo;
-	// if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
-	// 	GivePlayerWeapon(playerid, itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon], 99999);
-	// 	return 4;
-	// }
+	if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
+		GivePlayerWeapon(playerid, itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon], 99999);
+		return 4;
+	}
 
 	// Get the item type used as ammo for this weapon item
 	new AmmoType:ammoType;
@@ -581,17 +580,16 @@ _weapons_updateFast(playerid) {
 		return;
 	}
 
-	new todo;
-	// if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
-	// 	if(IsBaseWeaponThrowable(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon])) {
-	// 		if(GetPlayerWeapon(playerid) == 0) {
-	// 			if(GetTickCountDifference(GetTickCount(), tick_GetWeaponTick[playerid]) > 1000)
-	// 				DestroyItem(itemid);
-	// 		}
-	// 	}
+	if(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_calibre] == NO_CALIBRE) {
+		if(IsBaseWeaponThrowable(itmw_Data[itmw_ItemTypeWeapon[itemType]][itmw_baseWeapon])) {
+			if(GetPlayerWeapon(playerid) == 0) {
+				if(GetTickCountDifference(GetTickCount(), tick_GetWeaponTick[playerid]) > 1000)
+					DestroyItem(itemid);
+			}
+		}
 
-	// 	return;
-	// }
+		return;
+	}
 
 	if(GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
 		SetPlayerArmedWeapon(playerid, 0);
@@ -697,18 +695,26 @@ _weapons_doShot(playerid, weaponid, hittype = -1, hitid = -1, Float:fX = 0.0, Fl
 	GetWeaponMagAmmo(itemid, magammo);
 
 	if(!IsValidItemType(itemType)) {
-		new todo;
-		// CallLocalFunction() anticheat
-		// ChatMsgAdmins(1, YELLOW, "[TEST] Player %p fired weapon type %d without having any item equipped.", playerid, weaponid);
-		// dbg("weapon", "[TMPREPORT] Player %p fired weapon type %d without having any item equipped.", playerid, weaponid);
+		// TODO: CallLocalFunction anticheat
+		dbg(
+			"weapon",
+			"player fired weapon type without having any item equipped.",
+			_i("playerid", playerid),
+			_i("weaponid", weaponid)
+		);
 		return 0;
 	}
 
 	new WeaponType:weaponType;
 	if(GetItemTypeWeaponType(itemType, weaponType)) {
-		new todo;
-		// ChatMsgAdmins(1, YELLOW, "[TEST] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemType);
-		// dbg("weapon", "[TMPREPORT] Player %p fired weapon type %d while having a non-weapon item (%d) equipped.", playerid, weaponid, _:itemType);
+		// TODO: CallLocalFunction anticheat
+		dbg(
+			"weapon",
+			"player fired weapon type while having a non-weapon item equipped.",
+			_i("playerid", playerid),
+			_i("weaponid", weaponid),
+			_i("itemType", _:itemType)
+		);
 		return 0;
 	}
 
@@ -1150,4 +1156,332 @@ _weapons_generateItemName(itemid, output[], len = sizeof output) {
 		ammoname);
 
 	return 0;
+}
+
+hook OnPlayerUseItemWithItem(playerid, itemid, withitemid) {
+	if(GetPlayerSpecialAction(playerid) == SPECIAL_ACTION_CUFFED || IsPlayerKnockedOut(playerid) || GetPlayerAnimationIndex(playerid) == 1381) {
+		return Y_HOOKS_CONTINUE_RETURN_1;
+	}
+
+	_weapons_useWithItem(playerid, itemid, withitemid);
+
+	return Y_HOOKS_CONTINUE_RETURN_0;
+}
+
+_weapons_useWithItem(playerid, heldItemID, targetItemID) {
+	new
+		ItemType:heldItemType = GetItemType(heldItemID),
+		ItemType:targetItemType = GetItemType(targetItemID);
+
+	new WeaponType:heldWeaponType;
+	if(!GetItemTypeWeaponType(heldItemType, heldWeaponType)) {
+		// Player is holding a weapon
+
+		new WeaponType:targetWeaponType;
+		if(GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+			_weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, heldWeaponType, targetWeaponType);
+			return 1;
+		}
+
+		new AmmoType:targetAmmoType;
+		if(GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+			_weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, heldWeaponType, targetAmmoType);
+			return 1;
+		}
+	}
+
+	new AmmoType:heldAmmoType;
+	if(GetItemTypeAmmoType(heldItemType, heldAmmoType)) {
+		// Player is holding an ammo item
+
+		new WeaponType:targetWeaponType;
+		if(GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+			_weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, heldAmmoType, targetWeaponType);
+			return 1;
+		}
+		
+		new AmmoType:targetAmmoType;
+		if(GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+			_weapons_transferAmmoToAmmo(playerid, heldItemID, targetItemID, heldAmmoType, targetAmmoType);
+			return 1;
+		}
+	}
+
+	return 1;
+}
+
+
+// -
+// Transfer ammo from world weapon to held weapon
+// -
+
+_weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, WeaponType:heldWeaponType, WeaponType:targetWeaponType) {
+	new Calibre:heldCalibre;
+	GetWeaponTypeCalibre(heldWeaponType, heldCalibre);
+
+	if(heldCalibre == NO_CALIBRE) {
+		return 1;
+	}
+
+	new flags;
+	GetWeaponTypeFlags(heldWeaponType, flags);
+
+	if(flags & WEAPON_FLAG_LIQUID_AMMO) {
+		return 1;
+	}
+
+	new Calibre:targetCalibre;
+	GetWeaponTypeCalibre(targetWeaponType, targetCalibre);
+
+	if(heldCalibre != targetCalibre) {
+		ShowActionText(playerid, @L(playerid, "AMWRONGCALI", true), 3000);
+		return 1;
+	}
+
+	new AmmoType:heldAmmoType;
+	GetWeaponAmmoType(heldItemID, heldAmmoType);
+
+	if(IsValidAmmoType(heldAmmoType)) {
+		new AmmoType:targetAmmoType;
+		GetWeaponAmmoType(targetItemID, targetAmmoType);
+		if(heldAmmoType != targetAmmoType) {
+			ShowActionText(playerid, @L(playerid, "AMDIFFATYPE", true), 5000);
+			return 1;
+		}
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
+	defer _TransferWeaponToWeapon(playerid, targetItemID, heldItemID);
+
+	return 0;
+}
+timer _TransferWeaponToWeapon[400](playerid, srcItemID, trgItemID) {
+	new
+		magammo,
+		reserveammo,
+		remainder;
+
+	GetWeaponMagAmmo(srcItemID, magammo);
+	GetWeaponReserve(srcItemID, reserveammo);
+
+	if(reserveammo + magammo > 0) {
+		new AmmoType:ammoType;
+		GetWeaponAmmoType(srcItemID, ammoType);
+		SetWeaponAmmoType(trgItemID, ammoType);
+		remainder = GivePlayerAmmo(playerid, reserveammo + magammo);
+
+		SetWeaponMagAmmo(srcItemID, 0);
+		SetWeaponReserve(srcItemID, remainder);
+
+		new message[128];
+		format(message, sizeof message, @L(playerid, "AMTRANSWTOW", true), (reserveammo + magammo) - remainder);
+		ShowActionText(playerid, message, 3000);
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
+}
+
+
+// -
+// Transfer ammo from world ammo to held weapon
+// -
+
+_weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, WeaponType:heldWeaponType, AmmoType:targetAmmoType) {
+	new Calibre:heldCalibre;
+	GetWeaponTypeCalibre(heldWeaponType, heldCalibre);
+
+	if(heldCalibre == NO_CALIBRE) {
+		return;
+	}
+
+	// TODO: reimplement liquid items
+	// if(GetItemWeaponFlags(heldWeaponType) & WEAPON_FLAG_LIQUID_AMMO)
+	// {
+	// 	// heldcalibre represents a liquidtype
+
+	// 	if(GetItemTypeLiquidContainerType(GetItemType(targetItemID)) == -1)
+	// 		return;
+
+	// 	new
+	// 		Float:canfuel,
+	// 		Float:transfer;
+
+	// 	canfuel = GetLiquidItemLiquidAmount(targetItemID);
+
+	// 	if(canfuel <= 0.0)
+	// 	{
+	// 		ShowActionText(playerid, ls(playerid, "EMPTY", true), 3000);
+	// 		return;
+	// 	}
+
+	// 	transfer = (canfuel - 1.0 < 0.0) ? canfuel : 1.0;
+	// 	SetLiquidItemLiquidAmount(targetItemID, canfuel - transfer);
+	// 	SetItemWeaponItemMagAmmo(heldItemID, GetItemWeaponItemMagAmmo(heldItemID) + floatround(transfer) * 100);
+	// 	SetItemWeaponItemAmmoItem(heldItemID, item_GasCan);
+	// 	UpdatePlayerWeaponItem(playerid);
+	// 	// todo: remove dependency on itemtypes for liquid based weaps
+
+	// 	return;
+	// }
+
+	new Calibre:targetCalibre;
+	GetAmmoTypeCalibre(targetAmmoType, targetCalibre);
+
+	if(heldCalibre != targetCalibre) {
+		ShowActionText(playerid, @L(playerid, "AMWRONGCALI", true), 3000);
+		return;
+	}
+
+	new AmmoType:heldAmmoType;
+	GetWeaponAmmoType(heldItemID, heldAmmoType);
+
+	if(IsValidAmmoType(heldAmmoType)) {
+		if(heldAmmoType != targetAmmoType) {
+			ShowActionText(playerid, @L(playerid, "AMDIFFATYPE", true), 5000);
+			return;
+		}
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
+	defer _TransferTinToWeapon(playerid, targetItemID, heldItemID);
+
+	return;
+}
+timer _TransferTinToWeapon[400](playerid, srcItemID, trgItemID)
+{
+	new
+		ammo,
+		remainder;
+
+	GetItemArrayDataAtCell(srcItemID, 0, ammo);
+
+	if(ammo > 0) {
+		new AmmoType:ammoType;
+		GetItemTypeAmmoType(GetItemType(srcItemID), ammoType);
+		SetWeaponAmmoType(trgItemID, ammoType);
+		remainder = GivePlayerAmmo(playerid, ammo);
+
+		SetItemExtraData(srcItemID, remainder);
+
+		new message[128];
+		format(message, sizeof message, @L(playerid, "AMTRANSTTOW", true), ammo - remainder);
+		ShowActionText(playerid, message, 3000);
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
+}
+
+
+// -
+// Transfer ammo from world weapon to held ammo
+// -
+
+_weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldAmmoType, WeaponType:targetWeaponType) {
+	new Calibre:heldCalibre;
+	GetAmmoTypeCalibre(heldAmmoType, heldCalibre);
+
+	if(heldCalibre == NO_CALIBRE) {
+		return;
+	}
+
+	new flags;
+	GetWeaponTypeFlags(targetWeaponType, flags);
+	if(flags & WEAPON_FLAG_LIQUID_AMMO) {
+		return;
+	}
+
+	new Calibre:targetCalibre;
+	GetWeaponTypeCalibre(targetWeaponType, targetCalibre);
+	if(heldCalibre != targetCalibre) {
+		ShowActionText(playerid, @L(playerid, "AMWRONGCALI", true), 3000);
+		return;
+	}
+
+	new AmmoType:targetAmmoType;
+	GetWeaponAmmoType(targetItemID, targetAmmoType);
+
+	if(IsValidAmmoType(heldAmmoType)) {
+		if(targetAmmoType != heldAmmoType) {
+			ShowActionText(playerid, @L(playerid, "AMDIFFATYPE", true), 5000);
+			return;
+		}
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
+	defer _weapons_timerWeaponToAmmo(playerid, targetItemID, heldItemID);
+
+	return;
+}
+timer _weapons_timerWeaponToAmmo[400](playerid, srcItemID, trgItemID) {
+	new
+		existing,
+		mag,
+		reserve,
+		total;
+
+	GetItemArrayDataAtCell(trgItemID, 0, existing);
+	GetWeaponMagAmmo(srcItemID, mag);
+	GetWeaponReserve(srcItemID, reserve);
+
+	total = (existing + mag + reserve);
+
+	SetItemArrayDataAtCell(trgItemID, total, 0);
+
+	SetWeaponMagAmmo(srcItemID, 0);
+	SetWeaponReserve(srcItemID, 0);
+
+	new message[128];
+	format(message, sizeof message, @L(playerid, "AMTRANSWTOT", true), total);
+	ShowActionText(playerid, message, 3000);
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
+}
+
+
+// -
+// Transfer ammo from world ammo to held ammo
+// -
+
+_weapons_transferAmmoToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldAmmoType, AmmoType:targetAmmoType) {
+	new
+		Calibre:heldCalibre,
+		Calibre:targetCalibre;
+	GetAmmoTypeCalibre(heldAmmoType, heldCalibre);
+	GetAmmoTypeCalibre(targetAmmoType, targetCalibre);
+
+	if(heldCalibre == NO_CALIBRE || targetCalibre == NO_CALIBRE) {
+		return;
+	}
+
+	if(heldCalibre != targetCalibre) {
+		ShowActionText(playerid, @L(playerid, "AMMIXINTINS", true), 5000);
+		return;
+	}
+
+	if(heldAmmoType != targetAmmoType) {
+		ShowActionText(playerid, @L(playerid, "AMMIXINTINS", true), 5000);
+		return;
+	}
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
+	defer _weapons_timerAmmoToAmmo(playerid, targetItemID, heldItemID);
+
+	return;
+}
+timer _weapons_timerAmmoToAmmo[400](playerid, srcItemID, trgItemID) {
+	new
+		existing,
+		amount;
+
+	GetItemArrayDataAtCell(trgItemID, 0, existing),
+	GetItemArrayDataAtCell(srcItemID, 0, amount);
+
+	SetItemArrayDataAtCell(trgItemID, existing + amount, 0);
+	SetItemArrayDataAtCell(srcItemID, 0, 0);
+
+	new message[128];
+	format(message, sizeof message, @L(playerid, "AMTRANSTTOT", true), amount);
+	ShowActionText(playerid, message, 3000);
+
+	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
 }
