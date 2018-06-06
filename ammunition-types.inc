@@ -232,7 +232,7 @@ hook OnItemNameRender(itemid, ItemType:itemtype) {
 		amount,
 		str[MAX_ITEM_TEXT];
 	
-	GetItemExtraData(itemid, amount);
+	GetItemArrayDataAtCell(itemid, 0, amount);
 
 	format(str, sizeof(str), "%d, %s, %s",
 		amount,

@@ -10,9 +10,24 @@ new stock
 	ItemType:item_Ammo9mm,
 	ItemType:item_AmmoBuck,
 	ItemType:item_Ammo556,
+
 	Calibre:calibre_9mm,
 	Calibre:calibre_12g,
-	Calibre:calibre_556;
+	Calibre:calibre_556,
+
+	M9Pistol,
+	PumpShotgun,
+	M16Rifle,
+	Ammo9mm,
+	AmmoBuck,
+	Ammo556,
+
+	Text3D:debugM9Pistol,
+	Text3D:debugPumpShotgun,
+	Text3D:debugM16Rifle,
+	Text3D:debugAmmo9mm,
+	Text3D:debugAmmoBuck,
+	Text3D:debugAmmo556;
 
 main() {
 	logger_debug("weapon", true);
@@ -37,13 +52,13 @@ main() {
 	DefineItemTypeAmmo(item_AmmoBuck, "No. 1", calibre_12g, 1.1, 1.8, 0.5, 24);
 	DefineItemTypeAmmo(item_Ammo556, "FMJ", calibre_556, 1.1, 1.2, 0.8, 30);
 
-	new M9Pistol = CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
-	new PumpShotgun = CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
-	new M16Rifle = CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
+	M9Pistol = CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
+	PumpShotgun = CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
+	M16Rifle = CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
 
-	new Ammo9mm = CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8);
-	new AmmoBuck = CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8);
-	new Ammo556 = CreateItem(item_Ammo556, 305.0, 1802.0, 16.8);
+	Ammo9mm = CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8);
+	AmmoBuck = CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8);
+	Ammo556 = CreateItem(item_Ammo556, 305.0, 1802.0, 16.8);
 
 	SetItemArrayDataAtCell(Ammo9mm, 100, 0, true);
 	SetItemArrayDataAtCell(AmmoBuck, 100, 0, true);
@@ -52,6 +67,13 @@ main() {
 	SetItemArrayDataAtCell(M9Pistol, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
 	SetItemArrayDataAtCell(PumpShotgun, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
 	SetItemArrayDataAtCell(M16Rifle, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
+
+	debugM9Pistol = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1800.0, 17.5, 100.0, 0);
+	debugPumpShotgun = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1801.0, 17.5, 100.0, 0);
+	debugM16Rifle = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1802.0, 17.5, 100.0, 0);
+	debugAmmo9mm = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1800.0, 17.5, 100.0, 0);
+	debugAmmoBuck = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1801.0, 17.5, 100.0, 0);
+	debugAmmo556 = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1802.0, 17.5, 100.0, 0);
 
 	new itemName[MAX_ITEM_TEXT];
 	for(new ItemType:weaponItemType; IsValidItemType(weaponItemType); weaponItemType++) {
@@ -106,6 +128,41 @@ main() {
 
 		DestroyItem(weaponItem);
 	}
+}
+
+task update[1000]() {
+
+	setWeaponDebugLabel(M9Pistol, debugM9Pistol);
+	setWeaponDebugLabel(PumpShotgun, debugPumpShotgun);
+	setWeaponDebugLabel(M16Rifle, debugM16Rifle);
+
+	setAmmoDebugLabel(Ammo9mm, debugAmmo9mm);
+	setAmmoDebugLabel(AmmoBuck, debugAmmoBuck);
+	setAmmoDebugLabel(Ammo556, debugAmmo556);
+}
+
+setWeaponDebugLabel(itemid, Text3D:label) {
+	new
+		str[256],
+		mag,
+		reserve,
+		total,
+		AmmoType:ammoType;
+	GetWeaponMagAmmo(itemid, mag);
+	GetWeaponReserve(itemid, reserve);
+	total = mag+reserve;
+	GetWeaponAmmoType(itemid, ammoType);
+	format(str, 256, "%d/%d (%d) - %d", mag, reserve, total, _:ammoType);
+	Update3DTextLabelText(label, 0xFFFF00FF, str);
+}
+
+setAmmoDebugLabel(itemid, Text3D:label) {
+	new
+		str[256],
+		amount;
+	GetItemArrayDataAtCell(itemid, 0, amount);
+	format(str, 256, "%d", amount);
+	Update3DTextLabelText(label, 0xFFFF00FF, str);
 }
 
 hook OnItemArrayDataChanged(itemid) {
