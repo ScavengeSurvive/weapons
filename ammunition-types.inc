@@ -122,7 +122,7 @@ stock GetCalibreBleedRate(Calibre:calibre, &Float:bleedrate) {
 }
 
 // ammo_itemType
-stock GetAmmoTypeItemType(AmmoType:ammotype, ItemType:itemtype) {
+stock GetAmmoTypeItemType(AmmoType:ammotype, &ItemType:itemtype) {
 	if(!(AmmoType:0 <= ammotype < AmmoType:ammo_Total)) {
 		return 1;
 	}
@@ -243,13 +243,3 @@ hook OnItemNameRender(itemid, ItemType:itemtype) {
 
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
-
-// todo: move to SS core codebase
-// hook OnItemCreate(itemid) {
-// 	if(GetItemLootIndex(itemid) != -1) {
-// 		new ammotype = GetItemTypeAmmoType(GetItemType(itemid));
-// 		if(ammotype != -1) {
-// 			SetItemExtraData(itemid, ammo_Data[ammotype][ammo_size] == 1 ? random(1) : random(ammo_Data[ammotype][ammo_size] - 1) + 1);
-// 		}
-// 	}
-// }
