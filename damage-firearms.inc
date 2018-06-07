@@ -1,13 +1,13 @@
 // built-in include guard removal
 // just in case the user has a local dependency with the same file name
-#if defined _inc_firearms
-	#undef _inc_firearms
+#if defined _inc_damage_firearms
+	#undef _inc_damage_firearms
 #endif
 // custom include-guard to ensure we don't duplicate
-#if defined _firearms_included
+#if defined _damage_firearms_included
 	#endinput
 #endif
-#define _firearms_included
+#define _damage_firearms_included
 
 
 #include <YSI\y_hooks>
@@ -29,82 +29,115 @@ hook OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart) {
 _firearms_handleDamage(playerid, targetid, bodypart) {
 	new
 		itemid,
-		ItemType:itemtype,
-		weapontype,
-		baseweapon;
+		ItemType:itemType,
+		WeaponType:weaponType,
+		baseWeapon;
 
 	itemid = GetPlayerItem(playerid);
-	itemtype = GetItemType(itemid);
-	weapontype = GetItemTypeWeapon(itemtype);
-	baseweapon = GetItemWeaponBaseWeapon(weapontype);
+	itemType = GetItemType(itemid);
+	GetItemTypeWeaponType(itemType, weaponType);
+	GetWeaponTypeBaseWeapon(weaponType, baseWeapon);
 
-	if(!IsBaseWeaponClipBased(baseweapon)) {
+	if(!IsBaseWeaponClipBased(baseWeapon)) {
+		return 1;
+	}
+
+	if(baseWeapon == WEAPON_DEAGLE) {
+		new tick;
+		GetPlayerDeltDamageTick(playerid, tick);
+		if(GetTickCountDifference(GetTickCount(), tick) < 790) {
+			return 1;
+		}
+	} else {
+		new tick;
+		GetPlayerDeltDamageTick(playerid, tick);
+		if(GetTickCountDifference(GetTickCount(), tick) < 100) {
+			return 1;
+		}
+	}
+
+	new ret = _firearm_doDamage(playerid, targetid, itemid, weaponType, bodypart);
+	if(!ret) {
+		ShowHitMarker(playerid, baseWeapon);
 		return 0;
 	}
 
-	if(GetItemWeaponBaseWeapon(weapontype) == WEAPON_DEAGLE)
-	{
-		if(GetTickCountDifference(GetTickCount(), GetPlayerDeltDamageTick(playerid)) < 790)
-			return 0;
-	}
-	else
-	{
-		if(GetTickCountDifference(GetTickCount(), GetPlayerDeltDamageTick(playerid)) < 100)
-			return 0;
-	}
-
-	return _firearm_doDamage(playerid, targetid, itemid, itemtype, bodypart);
+	return ret;
 }
 
-_firearm_doDamage(playerid, targetid, itemid, ItemType:itemtype, bodypart) {
+_firearm_doDamage(playerid, targetid, itemid, WeaponType:weaponType, bodypart) {
 	new
-		calibre,
+		Calibre:calibre,
+		AmmoType:ammoType,
 		Float:bleedrate,
 		Float:knockmult = 1.0,
 		Float:bulletvelocity,
+		Float:px,
+		Float:py,
+		Float:pz,
+		Float:tx,
+		Float:ty,
+		Float:tz,
 		Float:distance,
-		Float:velocitydegredationrate;
+		Float:degrade;
 
-	calibre = GetItemTypeWeaponCalibre(itemtype);
-	bleedrate = GetCalibreBleedRate(calibre);
-	bulletvelocity = GetItemTypeWeaponMuzzVelocity(itemtype);
-	distance = GetDistanceBetweenPlayers(playerid, targetid);
-
-	dbg("gamemodes/sss/core/weapon/damage-firearm.pwn", 2, "[_firearm_doDamage] bleedrate: %.4f muzzlevel: %.4f distance: %.4f", bleedrate, bulletvelocity, distance);
+	GetWeaponTypeCalibre(weaponType, calibre);
+	GetWeaponAmmoType(itemid, ammoType);
+	GetCalibreBleedRate(calibre, bleedrate);
+	GetWeaponTypeMuzzVelocity(weaponType, bulletvelocity);
+	distance = GetDistance3D(px, py, pz, tx, ty, tz);
 
 	// Turns the muzzle velocity (initial velocity) into a factor that affects
 	// the bullet velocity depending on the distance it has travelled.
 	// To put it simply, if the weapon has a high muzzle velocity, the round
 	// isn't affected by the distance as much as a weapon with a low muzzle
 	// velocity.
-	velocitydegredationrate = 1.0 - (bulletvelocity / 11300);
-	dbg("gamemodes/sss/core/weapon/damage-firearm.pwn", 2, "[_firearm_doDamage] velocitydegredationrate: %.4f", velocitydegredationrate);
+	degrade = 1.0 - (bulletvelocity / 11300);
 
 	// Now a graph function, the distance is the 'x' and the degradation rate is
 	// the power. This gives a curved line which gradually lowers the velocity
 	// as the distance increases.
-	bulletvelocity -= floatpower(distance, velocitydegredationrate);
-	dbg("gamemodes/sss/core/weapon/damage-firearm.pwn", 2, "[_firearm_doDamage] bulletvelocity: %.4f", bulletvelocity);
+	bulletvelocity -= floatpower(distance, degrade);
 
 	// Now to combine the bullet velocity with the initial bleed rate of the
 	// bullet calibre which results in the final bleed rate for the player.
 	bleedrate *= bulletvelocity / 1000.0;
-	dbg("gamemodes/sss/core/weapon/damage-firearm.pwn", 2, "[_firearm_doDamage] bleedrate: %.4f", bleedrate);
 
 	knockmult *= bulletvelocity / 50.0;
 
+	dbg("weapon", "doing firearm damage",
+		_f("bleedrate", bleedrate),
+		_f("bulletvelocity", bulletvelocity),
+		_f("distance", distance),
+		_f("degrade", degrade));
+
 	// Apply bleedrate and knockout multiplier from ammotype
-	if(IsValidItem(itemid))
-	{
-		bleedrate *= GetAmmoTypeBleedrateMultiplier(GetItemTypeAmmoType(GetItemWeaponItemAmmoItem(itemid)));
-		knockmult *= GetAmmoTypeKnockoutMultiplier(GetItemTypeAmmoType(GetItemWeaponItemAmmoItem(itemid)));
+	if(IsValidItem(itemid)) {
+		new
+			Float:bleedMult,
+			Float:knockMult;
+		GetAmmoTypeBleedrateMultiplier(ammoType, bleedMult);
+		GetAmmoTypeKnockoutMultiplier(ammoType, knockMult);
+		bleedrate *= bleedMult;
+		knockmult *= knockMult;
 	}
 
 	dmg_ReturnBleedrate[targetid] = bleedrate;
 	dmg_ReturnKnockMult[targetid] = knockmult;
 
-	if(CallLocalFunction("OnPlayerShootPlayer", "dddffff", playerid, targetid, bodypart, bleedrate, knockmult, bulletvelocity, distance))
-		return 0;
+	if(CallLocalFunction(
+		"OnPlayerShootPlayer",
+		"dddffff",
+		playerid,
+		targetid,
+		bodypart,
+		bleedrate,
+		knockmult,
+		bulletvelocity,
+		distance
+	)) {
+		return 1;
+	}
 
 	if(dmg_ReturnBleedrate[targetid] != bleedrate)
 		bleedrate = dmg_ReturnBleedrate[targetid];
@@ -112,10 +145,17 @@ _firearm_doDamage(playerid, targetid, itemid, ItemType:itemtype, bodypart) {
 	if(dmg_ReturnKnockMult[targetid] != knockmult)
 		knockmult = dmg_ReturnKnockMult[targetid];
 
-	PlayerInflictWound(playerid, targetid, E_WOUND_FIREARM, bleedrate, knockmult, calibre, bodypart, "Firearm");
-	ShowHitMarker(playerid, GetItemTypeWeaponBaseWeapon(itemtype));
+	PlayerInflictWound(
+		playerid,
+		targetid,
+		E_WOUND_FIREARM,
+		bleedrate,
+		knockmult,
+		bodypart,
+		"Firearm"
+	);
 
-	return 1;
+	return 0;
 }
 
 stock DMG_FIREARM_SetBleedRate(targetid, Float:bleedrate)

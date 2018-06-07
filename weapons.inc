@@ -58,7 +58,8 @@ enum e_WEAPON_ITEM_ARRAY_STRUCT {
 #include "base-weapons"
 #include "ammunition-types"
 #include "ammunition-transfer"
-// #include "damage-firearms"
+#include "damage-firearms"
+#include "hitmarker"
 
 #include <YSI\y_hooks>
 

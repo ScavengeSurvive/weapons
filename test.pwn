@@ -39,7 +39,14 @@ new stock
 	Text3D:debugM16Rifle_2,
 	Text3D:debugAmmo9mm_2,
 	Text3D:debugAmmoBuck_2,
-	Text3D:debugAmmo556_2;
+	Text3D:debugAmmo556_2,
+	
+	Text3D:debugNPC0,
+	Text3D:debugNPC1,
+	Text3D:debugNPC2,
+	Text3D:debugNPC3,
+	Text3D:debugNPC4,
+	Text3D:debugNPC5;
 
 main() {
 	logger_debug("weapon", true);
@@ -113,6 +120,13 @@ main() {
 	debugAmmoBuck_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 310.0, 1803.0, 17.5, 100.0, 0);
 	debugAmmo556_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 310.0, 1806.0, 17.5, 100.0, 0);
 
+	debugNPC0 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1800.0, 18.0, 100.0, 0);
+	debugNPC1 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1802.0, 18.0, 100.0, 0);
+	debugNPC2 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1804.0, 18.0, 100.0, 0);
+	debugNPC3 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1806.0, 18.0, 100.0, 0);
+	debugNPC4 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1808.0, 18.0, 100.0, 0);
+	debugNPC5 = Create3DTextLabel("text[]", 0xFFFF00FF, 320.0, 1810.0, 18.0, 100.0, 0);
+
 	// new itemName[MAX_ITEM_TEXT];
 	// for(new ItemType:weaponItemType; IsValidItemType(weaponItemType); weaponItemType++) {
 	// 	new WeaponType:weaponType;
@@ -183,6 +197,13 @@ task update[1000]() {
 	setAmmoDebugLabel(Ammo9mm_2, debugAmmo9mm_2);
 	setAmmoDebugLabel(AmmoBuck_2, debugAmmoBuck_2);
 	setAmmoDebugLabel(Ammo556_2, debugAmmo556_2);
+
+	setNPCDebugLabel(npcs[0], debugNPC0);
+	setNPCDebugLabel(npcs[1], debugNPC1);
+	setNPCDebugLabel(npcs[2], debugNPC2);
+	setNPCDebugLabel(npcs[3], debugNPC3);
+	setNPCDebugLabel(npcs[4], debugNPC4);
+	setNPCDebugLabel(npcs[5], debugNPC5);
 }
 
 setWeaponDebugLabel(itemid, Text3D:label) {
@@ -209,6 +230,33 @@ setAmmoDebugLabel(itemid, Text3D:label) {
 	Update3DTextLabelText(label, 0xFFFF00FF, str);
 }
 
+setNPCDebugLabel(npcid, Text3D:label) {
+	new
+		str[256],
+		Float:blood,
+		Float:bleedrate,
+		wounds,
+		tookdamagetick,
+		Float:slowrate;
+
+	GetPlayerBlood(npcid, blood);
+	GetPlayerBleedRate(npcid, bleedrate);
+	GetPlayerWounds(npcid, wounds);
+	GetPlayerTookDamageTick(npcid, tookdamagetick);
+	slowrate = GetBleedSlowRate(blood, bleedrate, wounds);
+
+	format(
+		str,
+		256,
+		"blood: %f bleedrate: %f wounds: %d\nlastdamage %d slowrate %f",
+		blood,
+		bleedrate,
+		wounds,
+		tookdamagetick,
+		slowrate);
+	Update3DTextLabelText(label, 0xFFFF00FF, str);
+}
+
 hook OnItemArrayDataChanged(itemid) {
 	// useful for debugging
 	// log("item array data changed",
@@ -219,6 +267,11 @@ hook OnItemArrayDataChanged(itemid) {
 
 public OnPlayerSpawn(playerid) {
 	SetPlayerBlood(playerid, 100.0);
+	return 1;
+}
+
+public FCNPC_OnSpawn(npcid) {
+	SetPlayerBlood(npcid, 100.0);
 	return 1;
 }
 
