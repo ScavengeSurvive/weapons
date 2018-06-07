@@ -15,19 +15,31 @@ new stock
 	Calibre:calibre_12g,
 	Calibre:calibre_556,
 
-	M9Pistol,
-	PumpShotgun,
-	M16Rifle,
-	Ammo9mm,
-	AmmoBuck,
-	Ammo556,
+	M9Pistol_1,
+	PumpShotgun_1,
+	M16Rifle_1,
+	Ammo9mm_1,
+	AmmoBuck_1,
+	Ammo556_1,
+	M9Pistol_2,
+	PumpShotgun_2,
+	M16Rifle_2,
+	Ammo9mm_2,
+	AmmoBuck_2,
+	Ammo556_2,
 
-	Text3D:debugM9Pistol,
-	Text3D:debugPumpShotgun,
-	Text3D:debugM16Rifle,
-	Text3D:debugAmmo9mm,
-	Text3D:debugAmmoBuck,
-	Text3D:debugAmmo556;
+	Text3D:debugM9Pistol_1,
+	Text3D:debugPumpShotgun_1,
+	Text3D:debugM16Rifle_1,
+	Text3D:debugAmmo9mm_1,
+	Text3D:debugAmmoBuck_1,
+	Text3D:debugAmmo556_1,
+	Text3D:debugM9Pistol_2,
+	Text3D:debugPumpShotgun_2,
+	Text3D:debugM16Rifle_2,
+	Text3D:debugAmmo9mm_2,
+	Text3D:debugAmmoBuck_2,
+	Text3D:debugAmmo556_2;
 
 main() {
 	logger_debug("weapon", true);
@@ -48,97 +60,129 @@ main() {
 	DefineItemTypeWeapon(item_PumpShotgun, WEAPON_SHOTGUN, calibre_12g, 475.0, 6, 1);
 	DefineItemTypeWeapon(item_M16Rifle, WEAPON_M4, calibre_556, 948.0, 30, 1);
 
-	DefineItemTypeAmmo(item_Ammo9mm, "Hollow Point", calibre_9mm, 1.0, 1.0, 0.2, 20);
-	DefineItemTypeAmmo(item_AmmoBuck, "No. 1", calibre_12g, 1.1, 1.8, 0.5, 24);
-	DefineItemTypeAmmo(item_Ammo556, "FMJ", calibre_556, 1.1, 1.2, 0.8, 30);
+	new AmmoType:Ammo9mm = DefineItemTypeAmmo(item_Ammo9mm, "Hollow Point", calibre_9mm, 1.0, 1.0, 0.2, 20);
+	new AmmoType:AmmoBuck = DefineItemTypeAmmo(item_AmmoBuck, "No. 1", calibre_12g, 1.1, 1.8, 0.5, 24);
+	new AmmoType:Ammo556 = DefineItemTypeAmmo(item_Ammo556, "FMJ", calibre_556, 1.1, 1.2, 0.8, 30);
 
-	M9Pistol = CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
-	PumpShotgun = CreateItem(item_PumpShotgun, 304.0, 1801.0, 16.8);
-	M16Rifle = CreateItem(item_M16Rifle, 304.0, 1802.0, 16.8);
+	M9Pistol_1 = CreateItem(item_M9Pistol, 304.0, 1800.0, 16.8);
+	PumpShotgun_1 = CreateItem(item_PumpShotgun, 304.0, 1803.0, 16.8);
+	M16Rifle_1 = CreateItem(item_M16Rifle, 304.0, 1806.0, 16.8);
+	Ammo9mm_1 = CreateItem(item_Ammo9mm, 306.0, 1800.0, 16.8);
+	AmmoBuck_1 = CreateItem(item_AmmoBuck, 306.0, 1803.0, 16.8);
+	Ammo556_1 = CreateItem(item_Ammo556, 306.0, 1806.0, 16.8);
 
-	Ammo9mm = CreateItem(item_Ammo9mm, 305.0, 1800.0, 16.8);
-	AmmoBuck = CreateItem(item_AmmoBuck, 305.0, 1801.0, 16.8);
-	Ammo556 = CreateItem(item_Ammo556, 305.0, 1802.0, 16.8);
+	M9Pistol_2 = CreateItem(item_M9Pistol, 308.0, 1800.0, 16.8);
+	PumpShotgun_2 = CreateItem(item_PumpShotgun, 308.0, 1803.0, 16.8);
+	M16Rifle_2 = CreateItem(item_M16Rifle, 308.0, 1806.0, 16.8);
+	Ammo9mm_2 = CreateItem(item_Ammo9mm, 310.0, 1800.0, 16.8);
+	AmmoBuck_2 = CreateItem(item_AmmoBuck, 310.0, 1803.0, 16.8);
+	Ammo556_2 = CreateItem(item_Ammo556, 310.0, 1806.0, 16.8);
 
-	SetItemArrayDataAtCell(Ammo9mm, 100, 0, true);
-	SetItemArrayDataAtCell(AmmoBuck, 100, 0, true);
-	SetItemArrayDataAtCell(Ammo556, 100, 0, true);
+	SetItemArrayDataAtCell(Ammo9mm_1, 100, 0, true);
+	SetItemArrayDataAtCell(AmmoBuck_1, 100, 0, true);
+	SetItemArrayDataAtCell(Ammo556_1, 100, 0, true);
+	SetItemArrayDataAtCell(Ammo9mm_2, 1000, 0, true);
+	SetItemArrayDataAtCell(AmmoBuck_2, 1000, 0, true);
+	SetItemArrayDataAtCell(Ammo556_2, 1000, 0, true);
 
-	SetItemArrayDataAtCell(M9Pistol, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
-	SetItemArrayDataAtCell(PumpShotgun, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
-	SetItemArrayDataAtCell(M16Rifle, 100, WEAPON_ITEM_ARRAY_CELL_RESERVE, true);
+	SetWeaponAmmoType(M9Pistol_1, Ammo9mm);
+	SetWeaponAmmoType(PumpShotgun_1, AmmoBuck);
+	SetWeaponAmmoType(M16Rifle_1, Ammo556);
+	SetWeaponAmmoType(M9Pistol_2, Ammo9mm);
+	SetWeaponAmmoType(PumpShotgun_2, AmmoBuck);
+	SetWeaponAmmoType(M16Rifle_2, Ammo556);
 
-	debugM9Pistol = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1800.0, 17.5, 100.0, 0);
-	debugPumpShotgun = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1801.0, 17.5, 100.0, 0);
-	debugM16Rifle = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1802.0, 17.5, 100.0, 0);
-	debugAmmo9mm = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1800.0, 17.5, 100.0, 0);
-	debugAmmoBuck = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1801.0, 17.5, 100.0, 0);
-	debugAmmo556 = Create3DTextLabel("text[]", 0xFFFF00FF, 305.0, 1802.0, 17.5, 100.0, 0);
+	SetWeaponReserve(M9Pistol_1, 20);
+	SetWeaponReserve(PumpShotgun_1, 12);
+	SetWeaponReserve(M16Rifle_1, 60);
+	SetWeaponReserve(M9Pistol_2, 15);
+	SetWeaponReserve(PumpShotgun_2, 7);
+	SetWeaponReserve(M16Rifle_2, 36);
 
-	new itemName[MAX_ITEM_TEXT];
-	for(new ItemType:weaponItemType; IsValidItemType(weaponItemType); weaponItemType++) {
-		new WeaponType:weaponType;
-		if(GetItemTypeWeaponType(weaponItemType, weaponType)) {
-			continue;
-		}
+	debugM9Pistol_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1800.0, 17.5, 100.0, 0);
+	debugPumpShotgun_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1803.0, 17.5, 100.0, 0);
+	debugM16Rifle_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 304.0, 1806.0, 17.5, 100.0, 0);
+	debugAmmo9mm_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 306.0, 1800.0, 17.5, 100.0, 0);
+	debugAmmoBuck_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 306.0, 1803.0, 17.5, 100.0, 0);
+	debugAmmo556_1 = Create3DTextLabel("text[]", 0xFFFF00FF, 306.0, 1806.0, 17.5, 100.0, 0);
 
-		new Calibre:weaponTypeCalibre;
-		GetWeaponTypeCalibre(weaponType, weaponTypeCalibre);
-		if(weaponTypeCalibre == NO_CALIBRE) {
-			continue;
-		}
+	debugM9Pistol_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 308.0, 1800.0, 17.5, 100.0, 0);
+	debugPumpShotgun_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 308.0, 1803.0, 17.5, 100.0, 0);
+	debugM16Rifle_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 308.0, 1806.0, 17.5, 100.0, 0);
+	debugAmmo9mm_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 310.0, 1800.0, 17.5, 100.0, 0);
+	debugAmmoBuck_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 310.0, 1803.0, 17.5, 100.0, 0);
+	debugAmmo556_2 = Create3DTextLabel("text[]", 0xFFFF00FF, 310.0, 1806.0, 17.5, 100.0, 0);
 
-		new weaponItemName[MAX_ITEM_NAME];
-		GetItemTypeName(weaponItemType, weaponItemName);
+	// new itemName[MAX_ITEM_TEXT];
+	// for(new ItemType:weaponItemType; IsValidItemType(weaponItemType); weaponItemType++) {
+	// 	new WeaponType:weaponType;
+	// 	if(GetItemTypeWeaponType(weaponItemType, weaponType)) {
+	// 		continue;
+	// 	}
 
-		new weaponItem = CreateItem(weaponItemType);
+	// 	new Calibre:weaponTypeCalibre;
+	// 	GetWeaponTypeCalibre(weaponType, weaponTypeCalibre);
+	// 	if(weaponTypeCalibre == NO_CALIBRE) {
+	// 		continue;
+	// 	}
 
-		for(new ItemType:ammoItemType; IsValidItemType(ammoItemType); ammoItemType++) {
-			new AmmoType:ammoType;
-			if(GetItemTypeAmmoType(ammoItemType, ammoType)) {
-				continue;
-			}
+	// 	new weaponItemName[MAX_ITEM_NAME];
+	// 	GetItemTypeName(weaponItemType, weaponItemName);
 
-			new Calibre:ammoTypeCalibre;
-			if(GetAmmoTypeCalibre(ammoType, ammoTypeCalibre)) {
-				continue;
-			}
+	// 	new weaponItem = CreateItem(weaponItemType);
 
-			if(ammoTypeCalibre != weaponTypeCalibre) {
-				continue;
-			}
+	// 	for(new ItemType:ammoItemType; IsValidItemType(ammoItemType); ammoItemType++) {
+	// 		new AmmoType:ammoType;
+	// 		if(GetItemTypeAmmoType(ammoItemType, ammoType)) {
+	// 			continue;
+	// 		}
 
-			new mags;
-			new magSize;
-			GetWeaponTypeMaxReserveMags(weaponType, mags);
-			GetWeaponTypeMagSize(weaponType, magSize);
+	// 		new Calibre:ammoTypeCalibre;
+	// 		if(GetAmmoTypeCalibre(ammoType, ammoTypeCalibre)) {
+	// 			continue;
+	// 		}
 
-			for(new round; round < magSize; round++) {
-				for(new mag; mag < mags * magSize; mag++) {
-					SetWeaponAmmoType(weaponItem, ammoType);
-					SetWeaponMagAmmo(weaponItem, round);
-					SetWeaponReserve(weaponItem, mag);
-					_weapons_generateItemName(weaponItem, itemName);
-					log("rendered",
-						_s("name", weaponItemName),
-						_s("text", itemName));
-				}
-			}
-		}
+	// 		if(ammoTypeCalibre != weaponTypeCalibre) {
+	// 			continue;
+	// 		}
 
-		DestroyItem(weaponItem);
-	}
+	// 		new mags;
+	// 		new magSize;
+	// 		GetWeaponTypeMaxReserveMags(weaponType, mags);
+	// 		GetWeaponTypeMagSize(weaponType, magSize);
+
+	// 		for(new round; round < magSize; round++) {
+	// 			for(new mag; mag < mags * magSize; mag++) {
+	// 				SetWeaponAmmoType(weaponItem, ammoType);
+	// 				SetWeaponMagAmmo(weaponItem, round);
+	// 				SetWeaponReserve(weaponItem, mag);
+	// 				_weapons_generateItemName(weaponItem, itemName);
+	// 				log("rendered",
+	// 					_s("name", weaponItemName),
+	// 					_s("text", itemName));
+	// 			}
+	// 		}
+	// 	}
+
+	// 	DestroyItem(weaponItem);
+	// }
 }
 
 task update[1000]() {
 
-	setWeaponDebugLabel(M9Pistol, debugM9Pistol);
-	setWeaponDebugLabel(PumpShotgun, debugPumpShotgun);
-	setWeaponDebugLabel(M16Rifle, debugM16Rifle);
+	setWeaponDebugLabel(M9Pistol_1, debugM9Pistol_1);
+	setWeaponDebugLabel(PumpShotgun_1, debugPumpShotgun_1);
+	setWeaponDebugLabel(M16Rifle_1, debugM16Rifle_1);
+	setWeaponDebugLabel(M9Pistol_2, debugM9Pistol_2);
+	setWeaponDebugLabel(PumpShotgun_2, debugPumpShotgun_2);
+	setWeaponDebugLabel(M16Rifle_2, debugM16Rifle_2);
 
-	setAmmoDebugLabel(Ammo9mm, debugAmmo9mm);
-	setAmmoDebugLabel(AmmoBuck, debugAmmoBuck);
-	setAmmoDebugLabel(Ammo556, debugAmmo556);
+	setAmmoDebugLabel(Ammo9mm_1, debugAmmo9mm_1);
+	setAmmoDebugLabel(AmmoBuck_1, debugAmmoBuck_1);
+	setAmmoDebugLabel(Ammo556_1, debugAmmo556_1);
+	setAmmoDebugLabel(Ammo9mm_2, debugAmmo9mm_2);
+	setAmmoDebugLabel(AmmoBuck_2, debugAmmoBuck_2);
+	setAmmoDebugLabel(Ammo556_2, debugAmmo556_2);
 }
 
 setWeaponDebugLabel(itemid, Text3D:label) {
@@ -182,8 +226,9 @@ forward dummy();
 public dummy() {
 	new playerid;
 	new amount;
+	new remainder;
+	GivePlayerAmmo(playerid, amount, remainder);
 	new itemid;
-	GivePlayerAmmo(playerid, amount);
 	AddAmmoToWeapon(itemid, amount);
 
 	new WeaponType:weapontype;

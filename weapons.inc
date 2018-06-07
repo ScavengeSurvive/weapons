@@ -291,46 +291,46 @@ stock GetWeaponTypeFlags(WeaponType:weaponType, &flags) {
 
 
 // -
-// Item array data interface
+// Item array data interface - ItemID
 // -
 
 
 // WEAPON_ITEM_ARRAY_CELL_MAG
-stock GetWeaponMagAmmo(itemid, &ammo) {
-	return GetItemArrayDataAtCell(itemid, WEAPON_ITEM_ARRAY_CELL_MAG, ammo);
+stock GetWeaponMagAmmo(weaponItemID, &ammo) {
+	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_MAG, ammo);
 }
 
-stock SetWeaponMagAmmo(itemid, amount) {
+stock SetWeaponMagAmmo(weaponItemID, amount) {
 	if(amount == 0) {
 		new reserve;
-		GetWeaponReserve(itemid, reserve);
+		GetWeaponReserve(weaponItemID, reserve);
 		if(reserve == 0) {
-			SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
+			SetWeaponAmmoType(weaponItemID, INVALID_AMMUNITION_TYPE);
 		}
 	}
-	SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
-	return SetItemArrayDataAtCell(itemid, amount, WEAPON_ITEM_ARRAY_CELL_MAG);
+	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
+	return SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_MAG);
 }
 
 // WEAPON_ITEM_ARRAY_CELL_RESERVE
-stock GetWeaponReserve(itemid, &reserve) {
-	return GetItemArrayDataAtCell(itemid, WEAPON_ITEM_ARRAY_CELL_RESERVE, reserve);
+stock GetWeaponReserve(weaponItemID, &reserve) {
+	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_RESERVE, reserve);
 }
 
-stock SetWeaponReserve(itemid, amount) {
+stock SetWeaponReserve(weaponItemID, amount) {
 	if(amount == 0) {
 		new mag;
-		GetWeaponMagAmmo(itemid, mag);
+		GetWeaponMagAmmo(weaponItemID, mag);
 		if(mag == 0) {
-			SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
+			SetWeaponAmmoType(weaponItemID, INVALID_AMMUNITION_TYPE);
 		}
 	}
-	SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
-	return SetItemArrayDataAtCell(itemid, amount, WEAPON_ITEM_ARRAY_CELL_RESERVE);
+	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
+	return SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_RESERVE);
 }
 
 // WEAPON_ITEM_ARRAY_CELL_AMMOTYPE
-stock GetWeaponAmmoType(weaponItemID, AmmoType:ammoType) {
+stock GetWeaponAmmoType(weaponItemID, &AmmoType:ammoType) {
 	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE, _:ammoType);
 }
 
@@ -339,7 +339,10 @@ stock SetWeaponAmmoType(weaponItemID, AmmoType:ammoType) {
 	return SetItemArrayDataAtCell(weaponItemID, _:ammoType, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE);
 }
 
-// From player
+
+// -
+// Item array data interface - PlayerID
+// -
 
 stock GetPlayerMagAmmo(playerid, &mag) {
 	if(!IsPlayerConnected(playerid)) {
@@ -347,7 +350,6 @@ stock GetPlayerMagAmmo(playerid, &mag) {
 	}
 	return GetWeaponMagAmmo(GetPlayerItem(playerid), mag);
 }
-
 stock GetPlayerReserveAmmo(playerid, &reserve) {
 	if(!IsPlayerConnected(playerid)) {
 		return 1;
@@ -372,17 +374,17 @@ stock GetPlayerTotalAmmo(playerid, &ammo) {
 	return 0;
 }
 
-stock GivePlayerAmmo(playerid, amount) {
+stock GivePlayerAmmo(playerid, amount, &remainder) {
 	new itemid = GetPlayerItem(playerid);
 	if(!IsValidItem(itemid)) {
-		return 0;
+		return 1;
 	}
 
-	new remainder = AddAmmoToWeapon(itemid, amount);
+	remainder = AddAmmoToWeapon(itemid, amount);
 	_weapons_update(playerid);
 	_weapons_updateUI(playerid);
 
-	return remainder;
+	return 0;
 }
 
 stock RemovePlayerWeapon(playerid)
@@ -407,6 +409,14 @@ hook OnScriptInit() {
 	new languageid = InitLanguage("English");
 	AddLanguageEntry(languageid, "WEAPNOAMMOL", "There is no ammo loaded in this weapon");
 	AddLanguageEntry(languageid, "WEAPAUNLOAD", "Unloaded weapon");
+	AddLanguageEntry(languageid, "AMWRONGCALI", "Wrong calibre for weapon");
+	AddLanguageEntry(languageid, "AMDIFFATYPE", "A different ammunition type is already loaded in this weapon");
+	AddLanguageEntry(languageid, "AMMIXINTINS", "Ammo types can't be mixed in tins");
+	AddLanguageEntry(languageid, "AMTRANSWTOW", "Transferred %d rounds from weapon to weapon");
+	AddLanguageEntry(languageid, "AMTRANSTTOW", "Transferred %d rounds from ammo tin to weapon");
+	AddLanguageEntry(languageid, "AMTRANSWTOT", "Transferred %d rounds from weapon to ammo tin");
+	AddLanguageEntry(languageid, "AMTRANSTTOT", "Transferred %d rounds from ammo tin to ammo tin");
+
 }
 
 hook OnPlayerConnect(playerid) {
@@ -1081,7 +1091,7 @@ timer _weapons_doUnload[300](playerid, itemid) {
 		.world = GetPlayerVirtualWorld(playerid),
 		.interior = GetPlayerInterior(playerid));
 
-	SetItemExtraData(ammoitemid, mag + reserve);
+	SetItemArrayDataAtCell(ammoitemid, mag + reserve, 0);
 
 	SetWeaponMagAmmo(itemid, 0);
 	SetWeaponReserve(itemid, 0);

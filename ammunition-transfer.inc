@@ -18,30 +18,58 @@ _weapons_useWithItem(playerid, heldItemID, targetItemID) {
 		// Player is holding a weapon
 
 		new WeaponType:targetWeaponType;
-		if(GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+		if(!GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+			dbg("weapon", "player holding weapon interacted with weapon",
+				_i("playerid", playerid),
+				_i("heldItemType", _:heldItemType),
+				_i("heldWeaponType", _:heldWeaponType),
+				_i("targetItemType", _:targetItemType),
+				_i("targetWeaponType", _:targetWeaponType)
+			);
 			_weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, heldWeaponType, targetWeaponType);
 			return;
 		}
 
 		new AmmoType:targetAmmoType;
-		if(GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+		if(!GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+			dbg("weapon", "player holding weapon interacted with ammo",
+				_i("playerid", playerid),
+				_i("heldItemType", _:heldItemType),
+				_i("heldWeaponType", _:heldWeaponType),
+				_i("targetItemType", _:targetItemType),
+				_i("targetAmmoType", _:targetAmmoType)
+			);
 			_weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, heldWeaponType, targetAmmoType);
 			return;
 		}
 	}
 
 	new AmmoType:heldAmmoType;
-	if(GetItemTypeAmmoType(heldItemType, heldAmmoType)) {
+	if(!GetItemTypeAmmoType(heldItemType, heldAmmoType)) {
 		// Player is holding an ammo item
 
 		new WeaponType:targetWeaponType;
-		if(GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+		if(!GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+			dbg("weapon", "player holding ammo interacted with weapon",
+				_i("playerid", playerid),
+				_i("heldItemType", _:heldItemType),
+				_i("heldAmmoType", _:heldAmmoType),
+				_i("targetItemType", _:targetItemType),
+				_i("targetWeaponType", _:targetWeaponType)
+			);
 			_weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, heldAmmoType, targetWeaponType);
 			return;
 		}
 		
 		new AmmoType:targetAmmoType;
-		if(GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+		if(!GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+			dbg("weapon", "player holding ammo interacted with ammo",
+				_i("playerid", playerid),
+				_i("heldItemType", _:heldItemType),
+				_i("heldAmmoType", _:heldAmmoType),
+				_i("targetItemType", _:targetItemType),
+				_i("targetAmmoType", _:targetAmmoType)
+			);
 			_weapons_transferAmmoToAmmo(playerid, heldItemID, targetItemID, heldAmmoType, targetAmmoType);
 			return;
 		}
@@ -98,20 +126,28 @@ _weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, WeaponType:h
 timer _weapons_timerWeapToWeap[400](playerid, srcItemID, trgItemID) {
 	new
 		magammo,
-		reserveammo,
-		remainder;
+		reserveammo;
 
 	GetWeaponMagAmmo(srcItemID, magammo);
 	GetWeaponReserve(srcItemID, reserveammo);
 
 	if(reserveammo + magammo > 0) {
-		new AmmoType:ammoType;
+		new
+			AmmoType:ammoType,
+			remainder;
+
 		GetWeaponAmmoType(srcItemID, ammoType);
 		SetWeaponAmmoType(trgItemID, ammoType);
-		remainder = GivePlayerAmmo(playerid, reserveammo + magammo);
+		GivePlayerAmmo(playerid, reserveammo + magammo, remainder);
 
 		SetWeaponMagAmmo(srcItemID, 0);
 		SetWeaponReserve(srcItemID, remainder);
+
+		dbg("weapon", "transfered from weapon item to weapon item",
+			_i("magammo", magammo),
+			_i("reserveammo", reserveammo),
+			_i("ammoType", _:ammoType),
+			_i("remainder", remainder));
 
 		new message[128];
 		format(message, sizeof message, @L(playerid, "AMTRANSWTOW", true), (reserveammo + magammo) - remainder);
@@ -189,19 +225,25 @@ _weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, WeaponType:hel
 }
 timer _weapons_timerAmmoToWeapon[400](playerid, srcItemID, trgItemID)
 {
-	new
-		ammo,
-		remainder;
+	new ammo;
 
 	GetItemArrayDataAtCell(srcItemID, 0, ammo);
 
 	if(ammo > 0) {
-		new AmmoType:ammoType;
-		GetItemTypeAmmoType(GetItemType(srcItemID), ammoType);
-		SetWeaponAmmoType(trgItemID, ammoType);
-		remainder = GivePlayerAmmo(playerid, ammo);
+		new
+			AmmoType:ammoType,
+			remainder;
 
+		GetItemTypeAmmoType(GetItemType(srcItemID), ammoType);
+
+		GivePlayerAmmo(playerid, ammo, remainder);
+		SetWeaponAmmoType(trgItemID, ammoType);
 		SetItemArrayDataAtCell(srcItemID, remainder, 0);
+
+		dbg("weapon", "transfered from ammo item to weapon item",
+			_i("ammo", ammo),
+			_i("ammoType", _:ammoType),
+			_i("remainder", remainder));
 
 		new message[128];
 		format(message, sizeof message, @L(playerid, "AMTRANSTTOW", true), ammo - remainder);
@@ -271,7 +313,7 @@ timer _weapons_timerWeaponToAmmo[400](playerid, srcItemID, trgItemID) {
 	SetWeaponReserve(srcItemID, 0);
 
 	new message[128];
-	format(message, sizeof message, @L(playerid, "AMTRANSWTOT", true), total);
+	format(message, sizeof message, @L(playerid, "AMTRANSWTOT", true), mag + reserve);
 	ShowActionText(playerid, message, 3000);
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
