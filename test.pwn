@@ -1,6 +1,9 @@
 #include "weapons.inc"
 
+#include <test-boilerplate>
+#include <test-boilerplate-items>
 #include <test-boilerplate-npcs>
+#include <bag>
 
 
 new stock
@@ -56,9 +59,17 @@ new stock
 	Text3D:debugNPC4,
 	Text3D:debugNPC5;
 
-main() {
+public OnScriptInit() {
 	logger_debug("weapon", true);
 	logger_debug("item", true);
+	logger_debug("inventory-dialog", true);
+	logger_debug("contianer-dialog", true);
+	logger_debug("bag", true);
+
+	DefineBagType(item_Backpack, 11,
+		-0.110900, -0.073500, 0.000000,
+		0.000000, 0.000000, 0.000000,
+		1.000000, 1.000000, 1.000000);
 
 	item_M9Pistol = DefineItemType("M9", "M9Pistol", 346, 1, 90.0, .maxhitpoints = 1);
 	item_PumpShotgun = DefineItemType("Shotgun", "PumpShotgun", 349, 3, 90.0, .maxhitpoints = 3);

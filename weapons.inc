@@ -12,11 +12,16 @@
 
 #include <a_samp>
 #include <logger>
+#include <strlib>
 #include <item>
 #include <item-array-data>
 #include <health>
 #include <action-text>
 #include <language>
+#include <inventory>
+#include <container>
+#include <inventory-dialog>
+#include <container-dialog>
 
 
 // MAX_ITEM_WEAPON is the maximum amount of WeaponTypes that can be defined

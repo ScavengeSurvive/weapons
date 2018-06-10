@@ -1,23 +1,34 @@
 {
-  "user": "ScavengeSurvive",
-  "repo": "weapons",
-  "entry": "test.pwn",
-  "output": "test.amx",
-  "dependencies": [
-    "sampctl/samp-stdlib",
-    "Southclaws/samp-logger",
-    "ScavengeSurvive/item",
-    "ScavengeSurvive/health",
-    "ScavengeSurvive/item-array-data",
-    "ScavengeSurvive/action-text",
-    "ScavengeSurvive/language"
-  ],
-  "dev_dependencies": [
-    "ScavengeSurvive/test-boilerplate",
-    "ScavengeSurvive/test-boilerplate-items",
-    "ScavengeSurvive/test-boilerplate-npcs"
-  ],
-  "runtime": {
-    "maxnpc": 6
-  }
+	"user": "ScavengeSurvive",
+	"repo": "weapons",
+	"tag": "0.1.0",
+	"entry": "test.pwn",
+	"output": "test.amx",
+	"dependencies": [
+		"sampctl/samp-stdlib",
+		"Southclaws/samp-logger",
+		"ScavengeSurvive/item",
+		"ScavengeSurvive/health",
+		"ScavengeSurvive/item-array-data",
+		"ScavengeSurvive/action-text",
+		"ScavengeSurvive/language",
+		"ScavengeSurvive/inventory",
+		"ScavengeSurvive/container",
+		"ScavengeSurvive/inventory-dialog",
+		"ScavengeSurvive/container-dialog",
+		"oscar-broman/strlib"
+	],
+	"dev_dependencies": [
+		"ScavengeSurvive/test-boilerplate",
+		"ScavengeSurvive/test-boilerplate-items",
+		"ScavengeSurvive/test-boilerplate-npcs",
+		"ScavengeSurvive/itemtype-bag"
+	],
+	"runtime": {
+		"version": "0.3.7",
+		"mode": "server",
+		"rcon_password": "password",
+		"port": 7777,
+		"maxnpc": 6
+	}
 }

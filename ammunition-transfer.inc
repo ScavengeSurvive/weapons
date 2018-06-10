@@ -1,3 +1,211 @@
+static
+	Container:ContainerID[MAX_PLAYERS],
+	ContainerOptionID[MAX_PLAYERS] = {-1, ...},
+	Item:TargetItem[MAX_PLAYERS] = {INVALID_ITEM_ID, ...},
+	Item:SelectedItem[MAX_PLAYERS] = {INVALID_ITEM_ID, ...};
+
+
+hook OnPlayerViewCntOpt(playerid, Container:containerid) {
+	new
+		slot,
+		Item:itemid,
+		ItemType:itemtype,
+		WeaponType:weaponType;
+
+	GetPlayerContainerSlot(playerid, slot);
+	GetContainerSlotItem(containerid, slot, itemid);
+	itemtype = GetItemType(itemid);
+
+	if(GetItemTypeWeaponType(itemtype, weaponType)) {
+		return Y_HOOKS_CONTINUE_RETURN_0;
+	}
+
+	new Calibre:calibre;
+	if(GetWeaponTypeCalibre(weaponType, calibre)) {
+		return Y_HOOKS_CONTINUE_RETURN_0;
+	}
+
+	if(IsValidItem(SelectedItem[playerid]) && SelectedItem[playerid] != itemid) {
+		ContainerOptionID[playerid] = AddContainerOption(playerid, "Transfer Ammo Here");
+		TargetItem[playerid] = itemid;
+	} else {
+		ContainerOptionID[playerid] = AddContainerOption(playerid, "Transfer Ammo...");
+		SelectedItem[playerid] = itemid;
+	}
+
+	return Y_HOOKS_CONTINUE_RETURN_0;
+}
+
+hook OnPlayerSelectCntOpt(playerid, Container:containerid, option) {
+	if(option == ContainerOptionID[playerid]) {
+		if(!IsValidItem(SelectedItem[playerid])) {
+			return Y_HOOKS_CONTINUE_RETURN_0;
+		}
+
+		ContainerID[playerid] = containerid;
+
+		if(SelectedItem[playerid] != TargetItem[playerid]) {
+			new ret = DisplayTransferAmmoDialog(playerid);
+			if(ret) {
+				err("attempted to display ammo transfer dialog failed",
+					_i("ret", ret));
+			}
+		} else {
+			SelectedItem[playerid] = TargetItem[playerid];
+			DisplayContainerInventory(playerid, containerid);
+		}
+	}
+
+	return Y_HOOKS_CONTINUE_RETURN_0;
+}
+
+DisplayTransferAmmoDialog(playerid, msg[] = "") {
+	if(!IsValidItem(TargetItem[playerid])) {
+		return 1;
+	}
+
+	if(!IsValidItem(SelectedItem[playerid])) {
+		return 2;
+	}
+
+	new
+		slot,
+		Item:sourceItem,
+		ItemType:sourceItemType,
+		sourceItemName[MAX_ITEM_NAME],
+		ItemType:targetItemType,
+		targetItemName[MAX_ITEM_NAME];
+
+	sourceItem = SelectedItem[playerid];
+	sourceItemType = GetItemType(sourceItem);
+	GetItemTypeName(sourceItemType, sourceItemName);
+	GetPlayerContainerSlot(playerid, slot);
+	targetItemType = GetItemType(TargetItem[playerid]);
+	GetItemTypeName(targetItemType, targetItemName);
+
+	new body[256];
+	format(body, sizeof body, "Enter amount of ammo to transfer from %s to %s\n\n%s", sourceItemName, targetItemName, msg);
+	Dialog_Show(playerid, TransferAmmo, DIALOG_STYLE_INPUT, "Transfer Ammo", body, "Accept", "Cancel");
+
+	return 0;
+}
+Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
+	new
+		slot,
+		Item:sourceItem,
+		ItemType:sourceItemType,
+		sourceItemName[MAX_ITEM_NAME],
+		Item:targetItem,
+		ItemType:targetItemType,
+		targetItemName[MAX_ITEM_NAME];
+
+	sourceItem = SelectedItem[playerid];
+	sourceItemType = GetItemType(sourceItem);
+	GetItemTypeName(sourceItemType, sourceItemName);
+	GetPlayerContainerSlot(playerid, slot);
+	GetContainerSlotItem(ContainerID[playerid], slot, targetItem);
+	targetItemType = GetItemType(targetItem);
+	GetItemTypeName(targetItemType, targetItemName);
+
+	if(response) {
+		new amount = strval(inputtext);
+
+		new WeaponType:sourceWeaponType;
+		if(!GetItemTypeWeaponType(sourceItemType, sourceWeaponType)) {
+			new WeaponType:targetWeaponType;
+			if(!GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+				// weapon to weapon
+				new
+					sourceitemammo,
+					targetitemammo,
+					AmmoType:sourceAmmoType;
+				GetWeaponReserve(sourceItem, sourceitemammo);
+				GetWeaponReserve(targetItem, targetitemammo);
+
+				if(!GetWeaponAmmoType(sourceItem, sourceAmmoType) && 0 < amount <= sourceitemammo) {
+					SetWeaponReserve(sourceItem, sourceitemammo - amount);
+					SetWeaponReserve(targetItem, targetitemammo + amount);
+					SetWeaponAmmoType(targetItem, sourceAmmoType);
+				} else {
+					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+				}
+
+				return;
+			}
+
+			new AmmoType:targetAmmoType;
+			if(!GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+				// weapon to ammo
+				new
+					sourceitemammo,
+					targetitemammo;
+
+				GetWeaponReserve(sourceItem, sourceitemammo);
+				GetItemArrayDataAtCell(targetItem, targetitemammo, 0);
+
+				if(0 < amount <= sourceitemammo) {
+					SetWeaponReserve(sourceItem, sourceitemammo - amount);
+					SetItemArrayDataAtCell(targetItem, targetitemammo + amount, 0);
+				} else {
+					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+				}
+
+				return;
+			}
+		}
+
+		new AmmoType:sourceAmmoType;
+		if(!GetItemTypeAmmoType(sourceItemType, sourceAmmoType)) {
+			new WeaponType:targetWeaponType;
+			if(!GetItemTypeWeaponType(targetItemType, targetWeaponType)) {
+				// ammo to weapon
+				new
+					sourceitemammo,
+					targetitemammo;
+
+				GetItemArrayDataAtCell(sourceItem, sourceitemammo, 0);
+				GetWeaponReserve(targetItem, targetitemammo);
+
+				if(!GetWeaponAmmoType(sourceItem, sourceAmmoType) && 0 < amount <= sourceitemammo) {
+					SetItemArrayDataAtCell(sourceItem, sourceitemammo - amount, 0);
+					SetWeaponReserve(targetItem, targetitemammo + amount);
+					SetWeaponAmmoType(targetItem, sourceAmmoType);
+				} else {
+					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+				}
+
+				return;
+			}
+
+			new AmmoType:targetAmmoType;
+			if(!GetItemTypeAmmoType(targetItemType, targetAmmoType)) {
+				// ammo to ammo
+				new
+					sourceitemammo,
+					targetitemammo;
+
+				GetItemArrayDataAtCell(sourceItem, sourceitemammo, 0);
+				GetItemArrayDataAtCell(targetItem, targetitemammo, 0);
+
+				if(0 < amount <= sourceitemammo) {
+					SetItemArrayDataAtCell(sourceItem, sourceitemammo - amount, 0);
+					SetItemArrayDataAtCell(targetItem, targetitemammo + amount, 0);
+				} else {
+					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+				}
+
+				return;
+			}
+		}
+	}
+
+	ContainerOptionID[playerid] = -1;
+	SelectedItem[playerid] = INVALID_ITEM_ID;
+	DisplayContainerInventory(playerid, ContainerID[playerid]);
+
+	return;
+}
+
 hook OnPlayerUseItemWithItem(playerid, Item:itemid, Item:withitemid) {
 	if(GetPlayerSpecialAction(playerid) == SPECIAL_ACTION_CUFFED || IsPlayerKnockedOut(playerid) || GetPlayerAnimationIndex(playerid) == 1381) {
 		return Y_HOOKS_CONTINUE_RETURN_1;
@@ -192,8 +400,8 @@ _weapons_transferAmmoToWeapon(playerid, Item:heldItemID, Item:targetItemID, Weap
 
 	// 	transfer = (canfuel - 1.0 < 0.0) ? canfuel : 1.0;
 	// 	SetLiquidItemLiquidAmount(targetItemID, canfuel - transfer);
-	// 	SetItemWeaponItemMagAmmo(heldItemID, GetItemWeaponItemMagAmmo(heldItemID) + floatround(transfer) * 100);
-	// 	SetItemWeaponItemAmmoItem(heldItemID, item_GasCan);
+	// 	SetWeaponMagAmmo(heldItemID, GetWeaponMagAmmo(heldItemID) + floatround(transfer) * 100);
+	// 	SetWeaponAmmoItem(heldItemID, item_GasCan);
 	// 	UpdatePlayerWeaponItem(playerid);
 	// 	// todo: remove dependency on itemtypes for liquid based weaps
 
