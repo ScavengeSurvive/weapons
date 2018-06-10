@@ -221,7 +221,7 @@ stock GetAmmoItemTypesOfCalibre(calibre, ItemType:output[], max = sizeof(output)
 //
 
 
-hook OnItemNameRender(itemid, ItemType:itemtype) {
+hook OnItemNameRender(Item:itemid, ItemType:itemtype) {
 	new AmmoType:ammotype = ammo_ItemTypeAmmoType[itemtype];
 
 	if(ammotype == INVALID_AMMUNITION_TYPE) {
@@ -232,7 +232,7 @@ hook OnItemNameRender(itemid, ItemType:itemtype) {
 		amount,
 		str[MAX_ITEM_TEXT];
 	
-	GetItemArrayDataAtCell(itemid, 0, amount);
+	GetItemArrayDataAtCell(itemid, amount, 0);
 
 	format(str, sizeof(str), "%d, %s, %s",
 		amount,

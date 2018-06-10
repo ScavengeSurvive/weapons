@@ -1,4 +1,4 @@
-hook OnPlayerUseItemWithItem(playerid, itemid, withitemid) {
+hook OnPlayerUseItemWithItem(playerid, Item:itemid, Item:withitemid) {
 	if(GetPlayerSpecialAction(playerid) == SPECIAL_ACTION_CUFFED || IsPlayerKnockedOut(playerid) || GetPlayerAnimationIndex(playerid) == 1381) {
 		return Y_HOOKS_CONTINUE_RETURN_1;
 	}
@@ -8,7 +8,7 @@ hook OnPlayerUseItemWithItem(playerid, itemid, withitemid) {
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
 
-_weapons_useWithItem(playerid, heldItemID, targetItemID) {
+_weapons_useWithItem(playerid, Item:heldItemID, Item:targetItemID) {
 	new
 		ItemType:heldItemType = GetItemType(heldItemID),
 		ItemType:targetItemType = GetItemType(targetItemID);
@@ -83,7 +83,7 @@ _weapons_useWithItem(playerid, heldItemID, targetItemID) {
 // Transfer ammo from world weapon to held weapon
 // -
 
-_weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, WeaponType:heldWeaponType, WeaponType:targetWeaponType) {
+_weapons_transferWeaponToWeapon(playerid, Item:heldItemID, Item:targetItemID, WeaponType:heldWeaponType, WeaponType:targetWeaponType) {
 	new Calibre:heldCalibre;
 	GetWeaponTypeCalibre(heldWeaponType, heldCalibre);
 
@@ -119,7 +119,7 @@ _weapons_transferWeaponToWeapon(playerid, heldItemID, targetItemID, WeaponType:h
 	}
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
-	defer _weapons_timerWeapToWeap(playerid, targetItemID, heldItemID);
+	defer _weapons_timerWeapToWeap(playerid, _:targetItemID, _:heldItemID);
 
 	return 0;
 }
@@ -128,20 +128,20 @@ timer _weapons_timerWeapToWeap[400](playerid, srcItemID, trgItemID) {
 		magammo,
 		reserveammo;
 
-	GetWeaponMagAmmo(srcItemID, magammo);
-	GetWeaponReserve(srcItemID, reserveammo);
+	GetWeaponMagAmmo(Item:srcItemID, magammo);
+	GetWeaponReserve(Item:srcItemID, reserveammo);
 
 	if(reserveammo + magammo > 0) {
 		new
 			AmmoType:ammoType,
 			remainder;
 
-		GetWeaponAmmoType(srcItemID, ammoType);
-		SetWeaponAmmoType(trgItemID, ammoType);
+		GetWeaponAmmoType(Item:srcItemID, ammoType);
+		SetWeaponAmmoType(Item:trgItemID, ammoType);
 		GivePlayerAmmo(playerid, reserveammo + magammo, remainder);
 
-		SetWeaponMagAmmo(srcItemID, 0);
-		SetWeaponReserve(srcItemID, remainder);
+		SetWeaponMagAmmo(Item:srcItemID, 0);
+		SetWeaponReserve(Item:srcItemID, remainder);
 
 		dbg("weapon", "transfered from weapon item to weapon item",
 			_i("magammo", magammo),
@@ -162,7 +162,7 @@ timer _weapons_timerWeapToWeap[400](playerid, srcItemID, trgItemID) {
 // Transfer ammo from world ammo to held weapon
 // -
 
-_weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, WeaponType:heldWeaponType, AmmoType:targetAmmoType) {
+_weapons_transferAmmoToWeapon(playerid, Item:heldItemID, Item:targetItemID, WeaponType:heldWeaponType, AmmoType:targetAmmoType) {
 	new Calibre:heldCalibre;
 	GetWeaponTypeCalibre(heldWeaponType, heldCalibre);
 
@@ -219,26 +219,28 @@ _weapons_transferAmmoToWeapon(playerid, heldItemID, targetItemID, WeaponType:hel
 	}
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
-	defer _weapons_timerAmmoToWeapon(playerid, targetItemID, heldItemID);
+	defer _weapons_timerAmmoToWeapon(playerid, _:targetItemID, _:heldItemID);
 
 	return;
 }
-timer _weapons_timerAmmoToWeapon[400](playerid, srcItemID, trgItemID)
-{
+timer _weapons_timerAmmoToWeapon[400](playerid, srcItemID, trgItemID) {
 	new ammo;
 
-	GetItemArrayDataAtCell(srcItemID, 0, ammo);
+	if(IsError(GetItemArrayDataAtCell(Item:srcItemID, ammo, 0))) {
+		Handled();
+		return;
+	}
 
 	if(ammo > 0) {
 		new
 			AmmoType:ammoType,
 			remainder;
 
-		GetItemTypeAmmoType(GetItemType(srcItemID), ammoType);
+		GetItemTypeAmmoType(GetItemType(Item:srcItemID), ammoType);
 
 		GivePlayerAmmo(playerid, ammo, remainder);
-		SetWeaponAmmoType(trgItemID, ammoType);
-		SetItemArrayDataAtCell(srcItemID, remainder, 0);
+		SetWeaponAmmoType(Item:trgItemID, ammoType);
+		SetItemArrayDataAtCell(Item:srcItemID, remainder, 0);
 
 		dbg("weapon", "transfered from ammo item to weapon item",
 			_i("ammo", ammo),
@@ -251,6 +253,7 @@ timer _weapons_timerAmmoToWeapon[400](playerid, srcItemID, trgItemID)
 	}
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_2IDLE", 4.0, 0, 0, 0, 0, 0);
+	return;
 }
 
 
@@ -258,7 +261,7 @@ timer _weapons_timerAmmoToWeapon[400](playerid, srcItemID, trgItemID)
 // Transfer ammo from world weapon to held ammo
 // -
 
-_weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldAmmoType, WeaponType:targetWeaponType) {
+_weapons_transferWeaponToAmmo(playerid, Item:heldItemID, Item:targetItemID, AmmoType:heldAmmoType, WeaponType:targetWeaponType) {
 	new Calibre:heldCalibre;
 	GetAmmoTypeCalibre(heldAmmoType, heldCalibre);
 
@@ -280,7 +283,7 @@ _weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldA
 	}
 
 	new AmmoType:targetAmmoType;
-	GetWeaponAmmoType(targetItemID, targetAmmoType);
+	GetWeaponAmmoType(Item:targetItemID, targetAmmoType);
 
 	if(IsValidAmmoType(heldAmmoType)) {
 		if(targetAmmoType != heldAmmoType) {
@@ -290,7 +293,7 @@ _weapons_transferWeaponToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldA
 	}
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
-	defer _weapons_timerWeaponToAmmo(playerid, targetItemID, heldItemID);
+	defer _weapons_timerWeaponToAmmo(playerid, _:targetItemID, _:heldItemID);
 
 	return;
 }
@@ -301,16 +304,16 @@ timer _weapons_timerWeaponToAmmo[400](playerid, srcItemID, trgItemID) {
 		reserve,
 		total;
 
-	GetItemArrayDataAtCell(trgItemID, 0, existing);
-	GetWeaponMagAmmo(srcItemID, mag);
-	GetWeaponReserve(srcItemID, reserve);
+	GetItemArrayDataAtCell(Item:trgItemID, existing, 0);
+	GetWeaponMagAmmo(Item:srcItemID, mag);
+	GetWeaponReserve(Item:srcItemID, reserve);
 
 	total = (existing + mag + reserve);
 
-	SetItemArrayDataAtCell(trgItemID, total, 0);
+	SetItemArrayDataAtCell(Item:trgItemID, total, 0);
 
-	SetWeaponMagAmmo(srcItemID, 0);
-	SetWeaponReserve(srcItemID, 0);
+	SetWeaponMagAmmo(Item:srcItemID, 0);
+	SetWeaponReserve(Item:srcItemID, 0);
 
 	new message[128];
 	format(message, sizeof message, @L(playerid, "AMTRANSWTOT", true), mag + reserve);
@@ -324,7 +327,7 @@ timer _weapons_timerWeaponToAmmo[400](playerid, srcItemID, trgItemID) {
 // Transfer ammo from world ammo to held ammo
 // -
 
-_weapons_transferAmmoToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldAmmoType, AmmoType:targetAmmoType) {
+_weapons_transferAmmoToAmmo(playerid, Item:heldItemID, Item:targetItemID, AmmoType:heldAmmoType, AmmoType:targetAmmoType) {
 	new
 		Calibre:heldCalibre,
 		Calibre:targetCalibre;
@@ -346,7 +349,7 @@ _weapons_transferAmmoToAmmo(playerid, heldItemID, targetItemID, AmmoType:heldAmm
 	}
 
 	ApplyAnimation(playerid, "BOMBER", "BOM_PLANT_IN", 5.0, 1, 0, 0, 0, 450);
-	defer _weapons_timerAmmoToAmmo(playerid, targetItemID, heldItemID);
+	defer _weapons_timerAmmoToAmmo(playerid, _:targetItemID, _:heldItemID);
 
 	return;
 }
@@ -355,11 +358,11 @@ timer _weapons_timerAmmoToAmmo[400](playerid, srcItemID, trgItemID) {
 		existing,
 		amount;
 
-	GetItemArrayDataAtCell(trgItemID, 0, existing),
-	GetItemArrayDataAtCell(srcItemID, 0, amount);
+	GetItemArrayDataAtCell(Item:trgItemID, existing, 0),
+	GetItemArrayDataAtCell(Item:srcItemID, amount, 0);
 
-	SetItemArrayDataAtCell(trgItemID, existing + amount, 0);
-	SetItemArrayDataAtCell(srcItemID, 0, 0);
+	SetItemArrayDataAtCell(Item:trgItemID, existing + amount, 0);
+	SetItemArrayDataAtCell(Item:srcItemID, 0, 0);
 
 	new message[128];
 	format(message, sizeof message, @L(playerid, "AMTRANSTTOT", true), amount);

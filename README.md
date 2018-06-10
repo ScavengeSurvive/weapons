@@ -44,4 +44,6 @@ To test, simply run the package:
 sampctl package run
 ```
 
-And connect to `localhost:7777` with a friend/target to test.
+And connect to `localhost:7777` with a friend/target to test, there are NPCs in
+the test script but some things don't quite work properly with them so you
+should find a real player to test properly.

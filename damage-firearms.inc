@@ -28,7 +28,7 @@ hook OnPlayerGiveDamage(playerid, damagedid, Float:amount, weaponid, bodypart) {
 
 _firearms_handleDamage(playerid, targetid, bodypart) {
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType,
 		WeaponType:weaponType,
 		baseWeapon;
@@ -65,7 +65,7 @@ _firearms_handleDamage(playerid, targetid, bodypart) {
 	return ret;
 }
 
-_firearm_doDamage(playerid, targetid, itemid, WeaponType:weaponType, bodypart) {
+_firearm_doDamage(playerid, targetid, Item:itemid, WeaponType:weaponType, bodypart) {
 	new
 		Calibre:calibre,
 		AmmoType:ammoType,

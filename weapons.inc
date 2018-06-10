@@ -72,7 +72,7 @@ static
 	tick_LastReload[MAX_PLAYERS],
 	tick_GetWeaponTick[MAX_PLAYERS],
 	Timer:itmw_RepeatingFireTimer[MAX_PLAYERS],
-	itmw_DropItemID[MAX_PLAYERS] = {INVALID_ITEM_ID, ...},
+	Item:itmw_DropItemID[MAX_PLAYERS] = {INVALID_ITEM_ID, ...},
 	Timer:itmw_DropTimer[MAX_PLAYERS];
 
 
@@ -111,7 +111,7 @@ stock bool:IsItemTypeWeapon(ItemType:itemType) {
 	return itmw_ItemTypeWeapon[itemType] != INVALID_WEAPON_TYPE;
 }
 
-stock AddAmmoToWeapon(itemid, amount) {
+stock AddAmmoToWeapon(Item:itemid, amount) {
 	new AmmoType:ammoType;
 	GetWeaponAmmoType(itemid, ammoType);
 	if(!IsValidAmmoType(ammoType)) {
@@ -143,7 +143,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 		// the maximum amount of ammo the weapon can hold is nothing
 		dbg("weapon", "maxammo == 0",
 			_i("amount", amount),
-			_i("itemid", itemid),
+			_i("itemid", _:itemid),
 			_i("ammoType", _:ammoType),
 			_i("magsize", magsize),
 			_i("reserveammo", reserveammo));
@@ -167,7 +167,7 @@ stock AddAmmoToWeapon(itemid, amount) {
 
 		dbg("weapon", "adding ammo to item",
 			_i("amount", amount),
-			_i("itemid", itemid),
+			_i("itemid", _:itemid),
 			_i("ammoType", _:ammoType),
 			_i("reserveammo", reserveammo),
 			_i("maxammo", maxammo));
@@ -297,11 +297,15 @@ stock GetWeaponTypeFlags(WeaponType:weaponType, &flags) {
 
 
 // WEAPON_ITEM_ARRAY_CELL_MAG
-stock GetWeaponMagAmmo(weaponItemID, &ammo) {
-	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_MAG, ammo);
+stock GetWeaponMagAmmo(Item:weaponItemID, &ammo) {
+	if(IsError(GetItemArrayDataAtCell(weaponItemID, ammo, WEAPON_ITEM_ARRAY_CELL_MAG))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
-stock SetWeaponMagAmmo(weaponItemID, amount) {
+stock SetWeaponMagAmmo(Item:weaponItemID, amount) {
 	if(amount == 0) {
 		new reserve;
 		GetWeaponReserve(weaponItemID, reserve);
@@ -310,15 +314,23 @@ stock SetWeaponMagAmmo(weaponItemID, amount) {
 		}
 	}
 	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
-	return SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_MAG);
+	if(IsError(SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_MAG))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
 // WEAPON_ITEM_ARRAY_CELL_RESERVE
-stock GetWeaponReserve(weaponItemID, &reserve) {
-	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_RESERVE, reserve);
+stock GetWeaponReserve(Item:weaponItemID, &reserve) {
+	if(IsError(GetItemArrayDataAtCell(weaponItemID, reserve, WEAPON_ITEM_ARRAY_CELL_RESERVE))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
-stock SetWeaponReserve(weaponItemID, amount) {
+stock SetWeaponReserve(Item:weaponItemID, amount) {
 	if(amount == 0) {
 		new mag;
 		GetWeaponMagAmmo(weaponItemID, mag);
@@ -327,17 +339,29 @@ stock SetWeaponReserve(weaponItemID, amount) {
 		}
 	}
 	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
-	return SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_RESERVE);
+	if(IsError(SetItemArrayDataAtCell(weaponItemID, amount, WEAPON_ITEM_ARRAY_CELL_RESERVE))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
 // WEAPON_ITEM_ARRAY_CELL_AMMOTYPE
-stock GetWeaponAmmoType(weaponItemID, &AmmoType:ammoType) {
-	return GetItemArrayDataAtCell(weaponItemID, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE, _:ammoType);
+stock GetWeaponAmmoType(Item:weaponItemID, &AmmoType:ammoType) {
+	if(IsError(GetItemArrayDataAtCell(weaponItemID, _:ammoType, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
-stock SetWeaponAmmoType(weaponItemID, AmmoType:ammoType) {
+stock SetWeaponAmmoType(Item:weaponItemID, AmmoType:ammoType) {
 	SetItemArrayDataSize(weaponItemID, e_WEAPON_ITEM_ARRAY_STRUCT);
-	return SetItemArrayDataAtCell(weaponItemID, _:ammoType, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE);
+	if(IsError(SetItemArrayDataAtCell(weaponItemID, _:ammoType, WEAPON_ITEM_ARRAY_CELL_AMMOTYPE))) {
+		Handled();
+		return 1;
+	}
+	return 0;
 }
 
 
@@ -364,7 +388,7 @@ stock GetPlayerTotalAmmo(playerid, &ammo) {
 	}
 
 	new
-		itemid = GetPlayerItem(playerid),
+		Item:itemid = GetPlayerItem(playerid),
 		mag,
 		reserve;
 
@@ -376,7 +400,7 @@ stock GetPlayerTotalAmmo(playerid, &ammo) {
 }
 
 stock GivePlayerAmmo(playerid, amount, &remainder) {
-	new itemid = GetPlayerItem(playerid);
+	new Item:itemid = GetPlayerItem(playerid);
 	if(!IsValidItem(itemid)) {
 		return 1;
 	}
@@ -436,7 +460,7 @@ hook OnPlayerConnect(playerid) {
 	itmw_DropItemID[playerid] = INVALID_ITEM_ID;
 }
 
-hook OnItemCreate(itemid) {
+hook OnItemCreate(Item:itemid) {
 	if(IsItemTypeWeapon(GetItemType(itemid))) {
 		SetItemArrayDataSize(itemid, e_WEAPON_ITEM_ARRAY_STRUCT);
 		SetItemArrayDataAtCell(itemid, 0, WEAPON_ITEM_ARRAY_CELL_MAG);
@@ -457,14 +481,14 @@ hook OnPlayerGetItem(playerid, itemid) {
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
 
-hook OnPlayerGivenItem(playerid, targetid, itemid) {
+hook OnPlayerGivenItem(playerid, targetid, Item:itemid) {
 	new WeaponType:weapontype;
 	GetItemTypeWeaponType(GetItemType(itemid), weapontype);
 	if(weapontype != INVALID_WEAPON_TYPE) {
 		dbg("weapon", "player given weapon",
 			_i("playerid", playerid),
 			_i("targetid", targetid),
-			_i("itemid", itemid),
+			_i("itemid", _:itemid),
 			_i("weapon", _:weapontype));
 
 		RemovePlayerWeapon(playerid);
@@ -474,13 +498,13 @@ hook OnPlayerGivenItem(playerid, targetid, itemid) {
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
 
-hook OnPlayerDroppedItem(playerid, itemid) {
+hook OnPlayerDroppedItem(playerid, Item:itemid) {
 	new WeaponType:weapontype;
 	GetItemTypeWeaponType(GetItemType(itemid), weapontype);
 	if(weapontype != INVALID_WEAPON_TYPE) {
 		dbg("weapon", "player dropped weapon",
 			_i("playerid", playerid),
-			_i("itemid", itemid),
+			_i("itemid", _:itemid),
 			_i("weapon", _:weapontype));
 
 		RemovePlayerWeapon(playerid);
@@ -495,7 +519,7 @@ _weapons_update(playerid) {
 	}
 
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType;
 
 	itemid = GetPlayerItem(playerid);
@@ -575,7 +599,7 @@ hook OnPlayerUpdate(playerid) {
 
 _weapons_updateFast(playerid) {
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType;
 
 	itemid = GetPlayerItem(playerid);
@@ -625,7 +649,7 @@ _weapons_updateFast(playerid) {
 timer _RepeatingFire[1000](playerid)
 {
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType,
 		magammo;
 
@@ -699,7 +723,7 @@ _weapons_doShot(playerid, weaponid, hittype = -1, hitid = -1, Float:fX = 0.0, Fl
 		_i("weaponid", weaponid));
 
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType,
 		magammo;
 
@@ -753,7 +777,7 @@ _weapons_reload(playerid) {
 	}
 
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType,
 		WeaponType:weaponType,
 		Calibre:calibre;
@@ -828,7 +852,7 @@ _weapons_reload(playerid) {
 
 _weapons_updateUI(playerid) {
 	new
-		itemid,
+		Item:itemid,
 		ItemType:itemType,
 		WeaponType:weaponType,
 		Calibre:calibre;
@@ -869,43 +893,44 @@ _weapons_updateUI(playerid) {
 	return;
 }
 
-hook OnPlayerHolsteredItem(playerid, itemid) {
-	if(!IsItemTypeWeapon(GetItemType(itemid))) {
-		return Y_HOOKS_CONTINUE_RETURN_0;
-	}
+// TODO: implicit via item event, not holster event
+// hook OnPlayerHolsteredItem(playerid, Item:itemid) {
+// 	if(!IsItemTypeWeapon(GetItemType(itemid))) {
+// 		return Y_HOOKS_CONTINUE_RETURN_0;
+// 	}
 
-	new
-		heldItemID,
-		ItemType:itemType,
-		WeaponType:weaponType,
-		base;
+// 	new
+// 		heldItemID,
+// 		ItemType:itemType,
+// 		WeaponType:weaponType,
+// 		base;
 	
-	heldItemID = GetPlayerItem(playerid);
-	itemType = GetItemType(heldItemID);
-	if(GetItemTypeWeaponType(itemType, weaponType)) {
-		RemovePlayerWeapon(playerid);
-		return Y_HOOKS_CONTINUE_RETURN_0;
-	}
+// 	heldItemID = GetPlayerItem(playerid);
+// 	itemType = GetItemType(heldItemID);
+// 	if(GetItemTypeWeaponType(itemType, weaponType)) {
+// 		RemovePlayerWeapon(playerid);
+// 		return Y_HOOKS_CONTINUE_RETURN_0;
+// 	}
 
-	GetWeaponTypeBaseWeapon(weaponType, base);
-	if(base > 0) {
-		new mag;
-		GetWeaponMagAmmo(heldItemID, mag);
-		if(mag == 0) {
-			RemovePlayerWeapon(playerid);
-		}
-	}
+// 	GetWeaponTypeBaseWeapon(weaponType, base);
+// 	if(base > 0) {
+// 		new mag;
+// 		GetWeaponMagAmmo(heldItemID, mag);
+// 		if(mag == 0) {
+// 			RemovePlayerWeapon(playerid);
+// 		}
+// 	}
 
-	return Y_HOOKS_CONTINUE_RETURN_0;
-}
+// 	return Y_HOOKS_CONTINUE_RETURN_0;
+// }
 
-hook OnPlayerUnHolsteredItem(playerid, itemid) {
-	if(IsItemTypeWeapon(GetItemType(itemid))) {
-		_weapons_update(playerid);
-	}
+// hook OnPlayerUnHolsteredItem(playerid, itemid) {
+// 	if(IsItemTypeWeapon(GetItemType(itemid))) {
+// 		_weapons_update(playerid);
+// 	}
 
-	return Y_HOOKS_CONTINUE_RETURN_0;
-}
+// 	return Y_HOOKS_CONTINUE_RETURN_0;
+// }
 
 hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 	if(newkeys & 1) {
@@ -926,7 +951,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 
 	if(newkeys & KEY_FIRE) {
 		new
-			itemid,
+			Item:itemid,
 			ItemType:itemType;
 
 		itemid = GetPlayerItem(playerid);
@@ -944,7 +969,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 		new base;
 		GetWeaponTypeBaseWeapon(weapontype, base);
 		if(IsBaseWeaponThrowable(base)) {
-			defer _weapons_destroyThrowable(playerid, itemid);
+			defer _weapons_destroyThrowable(playerid, _:itemid);
 			return Y_HOOKS_CONTINUE_RETURN_1;
 		}
 
@@ -965,7 +990,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 
 	if(oldkeys & KEY_FIRE) {
 		new
-			itemid,
+			Item:itemid,
 			ItemType:itemType;
 
 		itemid = GetPlayerItem(playerid);
@@ -994,7 +1019,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 			GetWeaponReserve(itmw_DropItemID[playerid], reserve);
 
 			dbg("weapon", "dropping weapon item",
-				_i("itemid", itmw_DropItemID[playerid]),
+				_i("itemid", _:itmw_DropItemID[playerid]),
 				_i("mag", mag),
 				_i("reserve", reserve));
 
@@ -1008,7 +1033,7 @@ hook OnPlayerKeyStateChange(playerid, newkeys, oldkeys) {
 }
 
 timer _weapons_destroyThrowable[1000](playerid, itemid) {
-	DestroyItem(itemid);
+	DestroyItem(Item:itemid);
 	ResetPlayerWeapons(playerid);
 }
 
@@ -1025,7 +1050,7 @@ _weapons_handleDrop(playerid, itemid) {
 		ItemType:itemType,
 		WeaponType:weaponType;
 
-	itemType = GetItemType(itemid);
+	itemType = GetItemType(Item:itemid);
 	if(GetItemTypeWeaponType(itemType, weaponType)) {
 		return 0;
 	}
@@ -1046,19 +1071,19 @@ _weapons_handleDrop(playerid, itemid) {
 		return 0;
 	}
 
-	itmw_DropItemID[playerid] = itemid;
+	itmw_DropItemID[playerid] = Item:itemid;
 	itmw_DropTimer[playerid] = defer _weapons_doUnload(playerid, itemid);
 
 	return 1;
 }
 
 timer _weapons_doUnload[300](playerid, itemid) {
-	if(GetPlayerItem(playerid) != itemid) {
+	if(GetPlayerItem(playerid) != Item:itemid) {
 		itmw_DropItemID[playerid] = INVALID_ITEM_ID;
 		return;
 	}
 
-	if(itmw_DropItemID[playerid] != itemid) {
+	if(itmw_DropItemID[playerid] != Item:itemid) {
 		itmw_DropItemID[playerid] = INVALID_ITEM_ID;
 		return;
 	}
@@ -1070,16 +1095,16 @@ timer _weapons_doUnload[300](playerid, itemid) {
 		Float:y,
 		Float:z,
 		Float:r,
-		ammoitemid;
+		Item:ammoitemid;
 
-	GetWeaponAmmoType(itemid, ammoType);
+	GetWeaponAmmoType(Item:itemid, ammoType);
 	GetAmmoTypeItemType(ammoType, ammoTypeItemType);
 	GetPlayerPos(playerid, x, y, z);
 	GetPlayerFacingAngle(playerid, r);
 
 	new mag, reserve;
-	GetWeaponMagAmmo(itemid, mag);
-	GetWeaponReserve(itemid, reserve);
+	GetWeaponMagAmmo(Item:itemid, mag);
+	GetWeaponReserve(Item:itemid, reserve);
 
 	dbg("weapon", "unloading weapon ammo",
 		_i("mag", mag),
@@ -1094,9 +1119,9 @@ timer _weapons_doUnload[300](playerid, itemid) {
 
 	SetItemArrayDataAtCell(ammoitemid, mag + reserve, 0);
 
-	SetWeaponMagAmmo(itemid, 0);
-	SetWeaponReserve(itemid, 0);
-	SetWeaponAmmoType(itemid, INVALID_AMMUNITION_TYPE);
+	SetWeaponMagAmmo(Item:itemid, 0);
+	SetWeaponReserve(Item:itemid, 0);
+	SetWeaponAmmoType(Item:itemid, INVALID_AMMUNITION_TYPE);
 	_weapons_update(playerid);
 	itmw_DropItemID[playerid] = INVALID_ITEM_ID;
 
@@ -1106,7 +1131,7 @@ timer _weapons_doUnload[300](playerid, itemid) {
 	return;
 }
 
-hook OnItemNameRender(itemid, ItemType:itemType) {
+hook OnItemNameRender(Item:itemid, ItemType:itemType) {
 	new WeaponType:weapontype;
 	GetItemTypeWeaponType(itemType, weapontype);
 
@@ -1121,7 +1146,7 @@ hook OnItemNameRender(itemid, ItemType:itemType) {
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
 
-_weapons_generateItemName(itemid, output[], len = sizeof output) {
+_weapons_generateItemName(Item:itemid, output[], len = sizeof output) {
 	new ItemType:itemType = GetItemType(itemid);
 
 	new WeaponType:weaponType;
