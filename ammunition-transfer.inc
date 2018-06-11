@@ -1,36 +1,62 @@
 static
-	Container:ContainerID[MAX_PLAYERS],
+	Container:ContainerID[MAX_PLAYERS] = {INVALID_CONTAINER_ID, ...},
 	ContainerOptionID[MAX_PLAYERS] = {-1, ...},
 	Item:TargetItem[MAX_PLAYERS] = {INVALID_ITEM_ID, ...},
 	Item:SelectedItem[MAX_PLAYERS] = {INVALID_ITEM_ID, ...};
 
+
+_transfer_cleanup(playerid) {
+	ContainerID[playerid] = INVALID_CONTAINER_ID;
+	ContainerOptionID[playerid] = -1;
+	TargetItem[playerid] = INVALID_ITEM_ID;
+	SelectedItem[playerid] = INVALID_ITEM_ID;
+}
 
 hook OnPlayerViewCntOpt(playerid, Container:containerid) {
 	new
 		slot,
 		Item:itemid,
 		ItemType:itemtype,
-		WeaponType:weaponType;
+		WeaponType:weaponType,
+		AmmoType:ammoType,
+		Calibre:calibre;
 
 	GetPlayerContainerSlot(playerid, slot);
 	GetContainerSlotItem(containerid, slot, itemid);
 	itemtype = GetItemType(itemid);
 
-	if(GetItemTypeWeaponType(itemtype, weaponType)) {
+	if(!GetItemTypeWeaponType(itemtype, weaponType)) {
+		if(GetWeaponTypeCalibre(weaponType, calibre)) {
+			dbg("weapon", "ammo transfer valid weapon type but no calibre");
+			return Y_HOOKS_CONTINUE_RETURN_0;
+		}
+	} else if(!GetItemTypeAmmoType(itemtype, ammoType)) {
+		if(GetAmmoTypeCalibre(ammoType, calibre)) {
+			dbg("weapon", "ammo transfer valid ammo type but no calibre");
+			return Y_HOOKS_CONTINUE_RETURN_0;
+		}
+	} else {
+		dbg("weapon", "ammo transfer not weapon or ammo");
 		return Y_HOOKS_CONTINUE_RETURN_0;
 	}
 
-	new Calibre:calibre;
-	if(GetWeaponTypeCalibre(weaponType, calibre)) {
-		return Y_HOOKS_CONTINUE_RETURN_0;
-	}
-
-	if(IsValidItem(SelectedItem[playerid]) && SelectedItem[playerid] != itemid) {
-		ContainerOptionID[playerid] = AddContainerOption(playerid, "Transfer Ammo Here");
-		TargetItem[playerid] = itemid;
+	if(IsValidItem(SelectedItem[playerid])) {
+		if(SelectedItem[playerid] != itemid) {
+			ContainerOptionID[playerid] = AddContainerOption(playerid, "Transfer Ammo Here");
+			TargetItem[playerid] = itemid;
+			dbg("weapon", "set ammo transfer target item",
+				_i("selected", _:SelectedItem[playerid]),
+				_i("target", _:TargetItem[playerid]));
+		} else {
+			dbg("weapon", "viewed same item as selected for ammo transfer");
+			_transfer_cleanup(playerid);
+		}
 	} else {
 		ContainerOptionID[playerid] = AddContainerOption(playerid, "Transfer Ammo...");
 		SelectedItem[playerid] = itemid;
+		dbg("weapon", "set ammo transfer selected item",
+			_i("selected", _:SelectedItem[playerid]),
+			_i("target", _:TargetItem[playerid]));
 	}
 
 	return Y_HOOKS_CONTINUE_RETURN_0;
@@ -44,14 +70,18 @@ hook OnPlayerSelectCntOpt(playerid, Container:containerid, option) {
 
 		ContainerID[playerid] = containerid;
 
-		if(SelectedItem[playerid] != TargetItem[playerid]) {
-			new ret = DisplayTransferAmmoDialog(playerid);
-			if(ret) {
-				err("attempted to display ammo transfer dialog failed",
-					_i("ret", ret));
+		if(IsValidItem(TargetItem[playerid])) {
+			if(SelectedItem[playerid] != TargetItem[playerid]) {
+				new ret = _transfer_promptAmount(playerid);
+				if(ret) {
+					err("attempted to display ammo transfer dialog failed",
+						_i("ret", ret));
+				}
+			} else {
+				dbg("weapon", "selected same item as selected for ammo transfer");
+				_transfer_cleanup(playerid);
 			}
 		} else {
-			SelectedItem[playerid] = TargetItem[playerid];
 			DisplayContainerInventory(playerid, containerid);
 		}
 	}
@@ -59,7 +89,12 @@ hook OnPlayerSelectCntOpt(playerid, Container:containerid, option) {
 	return Y_HOOKS_CONTINUE_RETURN_0;
 }
 
-DisplayTransferAmmoDialog(playerid, msg[] = "") {
+hook OnPlayerCloseContainer(playerid, Container:containerid) {
+	_transfer_cleanup(playerid);
+	return Y_HOOKS_CONTINUE_RETURN_0;
+}
+
+_transfer_promptAmount(playerid, msg[] = "") {
 	if(!IsValidItem(TargetItem[playerid])) {
 		return 1;
 	}
@@ -127,7 +162,7 @@ Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
 					SetWeaponReserve(targetItem, targetitemammo + amount);
 					SetWeaponAmmoType(targetItem, sourceAmmoType);
 				} else {
-					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+					_transfer_promptAmount(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
 				}
 
 				return;
@@ -147,7 +182,7 @@ Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
 					SetWeaponReserve(sourceItem, sourceitemammo - amount);
 					SetItemArrayDataAtCell(targetItem, targetitemammo + amount, 0);
 				} else {
-					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+					_transfer_promptAmount(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
 				}
 
 				return;
@@ -171,7 +206,7 @@ Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
 					SetWeaponReserve(targetItem, targetitemammo + amount);
 					SetWeaponAmmoType(targetItem, sourceAmmoType);
 				} else {
-					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+					_transfer_promptAmount(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
 				}
 
 				return;
@@ -191,7 +226,7 @@ Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
 					SetItemArrayDataAtCell(sourceItem, sourceitemammo - amount, 0);
 					SetItemArrayDataAtCell(targetItem, targetitemammo + amount, 0);
 				} else {
-					DisplayTransferAmmoDialog(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
+					_transfer_promptAmount(playerid, sprintf("%s only contains %d ammo", sourceItemName, sourceitemammo));
 				}
 
 				return;
@@ -199,9 +234,8 @@ Dialog:TransferAmmo(playerid, response, listitem, inputtext[]) {
 		}
 	}
 
-	ContainerOptionID[playerid] = -1;
-	SelectedItem[playerid] = INVALID_ITEM_ID;
 	DisplayContainerInventory(playerid, ContainerID[playerid]);
+	_transfer_cleanup(playerid);
 
 	return;
 }

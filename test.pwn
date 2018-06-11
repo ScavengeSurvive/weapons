@@ -4,6 +4,7 @@
 #include <test-boilerplate-items>
 #include <test-boilerplate-npcs>
 #include <bag>
+#include <zcmd>
 
 
 new stock
@@ -346,4 +347,8 @@ public dummy() {
 	GetPlayerReserveAmmo(playerid, reserve);
 
 	GetPlayerTotalAmmo(playerid, ammo);
+}
+
+CMD:bag(playerid, params[]) {
+	return !ShowPlayerBag(playerid);
 }

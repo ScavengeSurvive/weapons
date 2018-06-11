@@ -22,7 +22,8 @@
 		"ScavengeSurvive/test-boilerplate",
 		"ScavengeSurvive/test-boilerplate-items",
 		"ScavengeSurvive/test-boilerplate-npcs",
-		"ScavengeSurvive/itemtype-bag"
+		"ScavengeSurvive/itemtype-bag",
+		"Southclaws/zcmd"
 	],
 	"runtime": {
 		"version": "0.3.7",
